@@ -5,3 +5,5 @@ export { createDefaultRegistry } from './handlers/index.js';
 export type { HandlerDefinition, EvaluateFn } from './handler.js';
 export { resolveValue, getNestedValue, isFieldReference, isDataReference } from './resolve.js';
 export { makeSuccess, makeFailure, makeTrace } from './result.js';
+export { Simulator } from './simulator.js';
+export type { TestCase, ValidationSuite, TestCaseResult, SimulatorReport } from './simulator.js';
