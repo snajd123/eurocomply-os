@@ -30,3 +30,9 @@ export type {
 
 export { ValidationResultSchema } from './validation-result.js';
 export type { ValidationResult } from './validation-result.js';
+
+export { HandlerCategorySchema, HandlerMetadataSchema } from './handler.js';
+export type { HandlerCategory, HandlerMetadata } from './handler.js';
+
+export { ASTNodeSchema, ASTValidationErrorSchema, ASTValidationResultSchema } from './ast.js';
+export type { ASTNode, ASTValidationError, ASTValidationResult } from './ast.js';
