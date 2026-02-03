@@ -169,6 +169,8 @@ eurocomply-registry/
 
 ### Phase 1: The Core (`kernel-vm`)
 
+**Repos:** `eurocomply-os`
+
 **Goal:** Build the pure computation engine. Zero dependencies. Zero I/O.
 
 **Why first:** Everything depends on this. It has no dependencies itself, so it can be built, tested, and validated in complete isolation. If the VM is wrong, everything above it is wrong.
@@ -194,6 +196,8 @@ eurocomply-registry/
 ---
 
 ### Phase 2: The State Layer (`platform-services`)
+
+**Repos:** `eurocomply-os`
 
 **Goal:** Bridge the pure VM to the real world. Build the execution loop.
 
@@ -221,6 +225,8 @@ MCP Request
 ---
 
 ### Phase 3: The First Vertical Slice
+
+**Repos:** `eurocomply-os` + `eurocomply-registry`
 
 **Goal:** One real compliance rule running end-to-end. The architecture proof point.
 
@@ -259,6 +265,8 @@ MCP Request
 
 ### Phase 4: The Registry (Pack lifecycle)
 
+**Repos:** `eurocomply-os` + `eurocomply-registry`
+
 **Goal:** Make Packs installable, versioned, and manageable.
 
 **Why now:** Phase 3 hardcoded a Pack. Now we build the machinery to install, update, and rollback Packs dynamically.
@@ -290,6 +298,8 @@ Developer authors a Pack in eurocomply-registry
 ---
 
 ### Phase 5: The Hub (provisioning and billing)
+
+**Repos:** `eurocomply-os`
 
 **Goal:** Automate Spoke creation. Make the product sellable.
 
@@ -327,6 +337,8 @@ Customer selects "EuroComply Cosmetics" on web portal
 
 ### Phase 6: The Network (A2A Protocol)
 
+**Repos:** `eurocomply-os`
+
 **Goal:** Connect Spokes together for cross-company compliance.
 
 **Why now:** Individual Spokes work. Now we enable the multi-party compliance workflows that create the network moat.
@@ -360,6 +372,8 @@ Brand (Spoke A) creates a product with Supplier X's ingredient
 ---
 
 ### Phase 7: The GSR Spoke (dogfooding the OS)
+
+**Repos:** `eurocomply-registry` (Packs) + `eurocomply-os` (Spoke infrastructure)
 
 **Goal:** Run the Global Substance Registry pipeline on the OS itself. The ultimate architecture validation.
 
@@ -400,6 +414,8 @@ Scheduled job fires on GSR Spoke
 ---
 
 ### Phase 8: The First Product (EuroComply Cosmetics)
+
+**Repos:** `eurocomply-registry` (Packs + product manifest) + `eurocomply-os` (billing, onboarding)
 
 **Goal:** Ship the first revenue-generating vertical product.
 
@@ -442,6 +458,8 @@ Cosmetics SME signs up for EuroComply Cosmetics (Growth tier)
 ---
 
 ### Phase 9: Scale (second vertical + marketplace)
+
+**Repos:** `eurocomply-registry` (Packs) + `eurocomply-os` (marketplace features)
 
 **Goal:** Prove the OS thesis -- the second product is dramatically cheaper than the first.
 

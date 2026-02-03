@@ -167,6 +167,15 @@ hub-control-plane → registry-sdk, network-protocol, types
 web-portal → types
 ```
 
+## Workflow Discipline
+
+When using subagent-driven-development to execute implementation plans:
+- NEVER skip per-task reviews (spec compliance + code quality) — they catch cascading issues early
+- Do not batch reviews at the end — a single final review cannot catch intermediate regressions
+- Run spec compliance review BEFORE code quality review (wrong order = wasted effort)
+- Do not move to the next task while either review has open issues
+- Speed is not a valid reason to skip quality gates
+
 ## Key Invariants
 
 1. Kernel VM handlers are pure functions — zero I/O, deterministic, synchronous
