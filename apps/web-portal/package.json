@@ -1,0 +1,19 @@
+{
+  "name": "@eurocomply/web-portal",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@eurocomply/types": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "vitest": "^3.0.0"
+  }
+}

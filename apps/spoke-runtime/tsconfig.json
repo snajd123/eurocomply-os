@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/kernel-vm" },
+    { "path": "../../packages/platform-services" },
+    { "path": "../../packages/registry-sdk" },
+    { "path": "../../packages/types" }
+  ]
+}

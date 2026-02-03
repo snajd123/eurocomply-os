@@ -1,0 +1,16 @@
+{
+  "name": "@eurocomply/kernel-vm",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}

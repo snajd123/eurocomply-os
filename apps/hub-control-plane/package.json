@@ -1,0 +1,22 @@
+{
+  "name": "@eurocomply/hub-control-plane",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@eurocomply/registry-sdk": "workspace:*",
+    "@eurocomply/network-protocol": "workspace:*",
+    "@eurocomply/types": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "vitest": "^3.0.0"
+  }
+}

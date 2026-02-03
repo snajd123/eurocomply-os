@@ -1,0 +1,22 @@
+{
+  "name": "@eurocomply/cli",
+  "version": "0.0.1",
+  "private": true,
+  "bin": {
+    "eurocomply": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@eurocomply/kernel-vm": "workspace:*",
+    "@eurocomply/registry-sdk": "workspace:*",
+    "@eurocomply/types": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}
