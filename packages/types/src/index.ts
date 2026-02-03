@@ -36,3 +36,18 @@ export type { HandlerCategory, HandlerMetadata } from './handler.js';
 
 export { ASTNodeSchema, ASTValidationErrorSchema, ASTValidationResultSchema } from './ast.js';
 export type { ASTNode, ASTValidationError, ASTValidationResult } from './ast.js';
+
+export {
+  PrincipalSchema,
+  AuditEntrySchema,
+  FilterExpressionSchema,
+} from './platform-service.js';
+
+export type {
+  Principal,
+  ServiceContext,
+  AuditEntry,
+  ServiceResult,
+  FilterExpression,
+  PlatformService,
+} from './platform-service.js';
