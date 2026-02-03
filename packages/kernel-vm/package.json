@@ -11,6 +11,7 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
+    "@eurocomply/types": "workspace:*",
     "vitest": "^3.0.0"
   }
 }
