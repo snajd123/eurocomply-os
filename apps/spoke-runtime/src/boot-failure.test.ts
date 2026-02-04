@@ -57,6 +57,42 @@ describe('Boot failure handling', () => {
     await spoke.close();
   });
 
+  it('rolls back all packs on partial install failure when requirePacks is true', async () => {
+    const packsDir = join(tmpdir(), `test-packs-atomic-${Date.now()}`);
+
+    // Create a valid-looking pack (has pack.json but will fail at createInstallPlan)
+    const validPackDir = join(packsDir, 'aaa-first-pack');
+    mkdirSync(validPackDir, { recursive: true });
+    writeFileSync(join(validPackDir, 'pack.json'), JSON.stringify({
+      name: '@test/first',
+      version: '1.0.0',
+      type: 'logic',
+    }));
+
+    // Create a broken pack (no pack.json — will fail to load)
+    const brokenPackDir = join(packsDir, 'zzz-broken-pack');
+    mkdirSync(brokenPackDir, { recursive: true });
+    writeFileSync(join(brokenPackDir, 'not-a-pack.txt'), 'garbage');
+
+    try {
+      await expect(boot({
+        port: 0,
+        postgres: {
+          host: container.getHost(),
+          port: container.getMappedPort(5432),
+          database: container.getDatabase(),
+          user: container.getUsername(),
+          password: container.getPassword(),
+        },
+        tenantId: 'boot-atomic-test',
+        packsDir,
+        requirePacks: true,
+      })).rejects.toThrow();
+    } finally {
+      rmSync(packsDir, { recursive: true, force: true });
+    }
+  });
+
   it('boots with warnings when packs fail but requirePacks is false', async () => {
     const packsDir = join(tmpdir(), `test-packs-opt-${Date.now()}`);
     const brokenPackDir = join(packsDir, 'optional-broken');

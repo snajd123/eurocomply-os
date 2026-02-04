@@ -116,9 +116,12 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
       availablePacks[pack.manifest.name] = pack;
     }
 
-    // Create install plan and install each pack
-    for (const pack of loadedPacks) {
-      try {
+    // Wrap all pack installations in a single transaction for atomicity
+    const uow = await db.beginTransaction();
+    const txCtx = { ...ctx, tx: uow };
+
+    try {
+      for (const pack of loadedPacks) {
         const plan = await createInstallPlan(pack, {
           availablePacks,
           registry,
@@ -129,6 +132,7 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
         if (!plan.valid) {
           const msg = `Install plan invalid for ${pack.manifest.name}: ${plan.errors.join(', ')}`;
           if (config.requirePacks) {
+            await uow.rollback();
             await db.close();
             if (neo4j) await neo4j.close();
             throw new Error(`Boot aborted: ${msg}`);
@@ -138,18 +142,22 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
         }
 
         for (const p of plan.packsToInstall) {
-          await packService.install(ctx, p.manifest);
+          await packService.install(txCtx, p.manifest);
         }
 
-        await packService.saveLock(ctx, plan.lock);
-      } catch (err) {
-        if (config.requirePacks) {
-          await db.close();
-          if (neo4j) await neo4j.close();
-          throw err instanceof Error ? err : new Error(`Boot aborted: failed to install pack ${pack.manifest.name}`);
-        }
-        console.error(`Failed to install pack ${pack.manifest.name}:`, err);
+        await packService.saveLock(txCtx, plan.lock);
       }
+
+      await uow.commit();
+    } catch (err) {
+      // Safe to call even if rollback was already called (UnitOfWork is idempotent)
+      await uow.rollback();
+      if (config.requirePacks) {
+        await db.close();
+        if (neo4j) await neo4j.close();
+        throw err instanceof Error ? err : new Error('Boot aborted: pack installation failed');
+      }
+      console.error('Pack installation failed, continuing without packs:', err);
     }
   }
 
