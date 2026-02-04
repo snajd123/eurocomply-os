@@ -18,6 +18,8 @@ import { loadPack, createInstallPlan, type LoadedPack } from '@eurocomply/regist
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import type { SpokeConfig } from './config.js';
+import { SpokeAgent } from './spoke-agent.js';
+import { HubClient } from './hub-client.js';
 
 class MemoryStorageBackend implements StorageBackend {
   private store = new Map<string, Buffer>();
@@ -35,6 +37,7 @@ export interface SpokeInstance {
   executionLoop: ExecutionLoop;
   packService: PackService;
   relationService?: RelationService;
+  agent?: SpokeAgent;
   close(): Promise<void>;
 }
 
@@ -128,6 +131,17 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
     }
   }
 
+  // Start spoke agent if Hub URL is configured
+  let agent: SpokeAgent | undefined;
+  if (config.hubUrl) {
+    const hubClient = new HubClient(config.hubUrl, config.apiKey ?? '');
+    agent = new SpokeAgent(hubClient, {
+      spokeId: config.spokeId ?? config.tenantId,
+      osVersion: '2.0.0',
+    });
+    agent.start();
+  }
+
   return {
     app,
     db,
@@ -137,7 +151,9 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
     executionLoop,
     packService,
     relationService,
+    agent,
     async close() {
+      if (agent) agent.stop();
       if (neo4j) await neo4j.close();
       await db.close();
     },

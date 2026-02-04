@@ -15,6 +15,9 @@ export interface SpokeConfig {
   tenantId: string;
   packsDir?: string;
   seedFile?: string;
+  hubUrl?: string;     // Hub URL for agent heartbeats
+  apiKey?: string;     // API key for Hub authentication
+  spokeId?: string;    // Override spoke ID (otherwise defaults to tenantId)
 }
 
 export function loadConfig(): SpokeConfig {
@@ -35,5 +38,8 @@ export function loadConfig(): SpokeConfig {
     tenantId: process.env.TENANT_ID ?? 'default',
     packsDir: process.env.PACKS_DIR,
     seedFile: process.env.SEED_FILE,
+    hubUrl: process.env.HUB_URL,
+    apiKey: process.env.API_KEY,
+    spokeId: process.env.SPOKE_ID,
   };
 }
