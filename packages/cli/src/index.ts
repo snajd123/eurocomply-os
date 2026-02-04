@@ -48,12 +48,44 @@ async function main(): Promise<void> {
       break;
     }
 
+    case 'publish': {
+      const packDir = args[0];
+      if (!packDir) {
+        console.error('Usage: eurocomply publish <pack-directory> [--registry <url>] [--dry-run]');
+        process.exit(1);
+      }
+      const { publish } = await import('./commands/publish.js');
+      const registryUrl = args.includes('--registry') ? args[args.indexOf('--registry') + 1] : 'http://localhost:3001';
+      const dryRun = args.includes('--dry-run');
+      const result = await publish(packDir, { registryUrl, dryRun });
+
+      if (!result.validated) {
+        console.error(`\u2717 ${result.packName}@${result.version} \u2014 validation failed`);
+        console.error(`  ${result.error}`);
+        process.exit(1);
+      }
+      if (dryRun) {
+        console.log(`\u2713 ${result.packName}@${result.version} \u2014 validation passed (dry run, not published)`);
+      } else if (result.published) {
+        console.log(`\u2713 ${result.packName}@${result.version} \u2014 published (CID: ${result.cid})`);
+      } else {
+        console.error(`\u2717 ${result.packName}@${result.version} \u2014 publish failed: ${result.error}`);
+        process.exit(1);
+      }
+      break;
+    }
+
     default:
       console.log('Usage: eurocomply <command> [args]');
       console.log('');
       console.log('Commands:');
-      console.log('  lint <pack-dir>   Validate a pack\'s manifest and rule AST');
-      console.log('  test <pack-dir>   Run a pack\'s validation suite');
+      console.log('  lint <pack-dir>                Validate a pack\'s manifest and rule AST');
+      console.log('  test <pack-dir>                Run a pack\'s validation suite');
+      console.log('  publish <pack-dir> [options]   Lint, test, and publish a pack to the registry');
+      console.log('');
+      console.log('Publish options:');
+      console.log('  --registry <url>   Registry URL (default: http://localhost:3001)');
+      console.log('  --dry-run          Validate only, do not publish');
       process.exit(command ? 1 : 0);
   }
 }
