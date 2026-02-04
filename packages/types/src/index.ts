@@ -52,5 +52,8 @@ export type {
   PlatformService,
 } from './platform-service.js';
 
-export { PackManifestSchema } from './pack-manifest.js';
-export type { PackManifest } from './pack-manifest.js';
+export { PackManifestSchema, PackAuthorSchema, TrustTierSchema } from './pack-manifest.js';
+export type { PackManifest, PackAuthor, TrustTier } from './pack-manifest.js';
+
+export { LockedPackSchema, LockedSchemaSchema, ComplianceLockSchema } from './compliance-lock.js';
+export type { LockedPack, LockedSchema, ComplianceLock } from './compliance-lock.js';
