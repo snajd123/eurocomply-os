@@ -6,9 +6,9 @@ Monorepo for the EuroComply Compliance OS engine. pnpm workspaces + Turborepo.
 
 The OS kernel has two co-equal halves:
 
-**Kernel VM** (`packages/kernel-vm`) — Pure computation engine. Zero dependencies, zero I/O, synchronous. Every handler is a pure function: `(config, input, ExecutionContext) → HandlerResult`. ~53 immutable handlers across 9 categories. Rules are ASTs composed from handlers. Runnable anywhere JavaScript runs.
+**Kernel VM** (`packages/kernel-vm`) — Pure computation engine. Zero dependencies, zero I/O, synchronous. Every handler is a pure function: `(config, input, ExecutionContext) → HandlerResult`. 52 immutable handlers across 7 categories. Rules are ASTs composed from handlers. Runnable anywhere JavaScript runs.
 
-**Platform Services** (`packages/platform-services`) — Stateful syscall layer. ~90 MCP tools for entity CRUD, graph operations, file storage, search, permissions, jobs, events, audit, and AI. Assembles `ExecutionContext` by pre-loading entity data from PostgreSQL/Neo4j, invokes the VM, persists results.
+**Platform Services** (`packages/platform-services`) — Stateful syscall layer. ~98 MCP tools for entity CRUD, graph operations, file storage, search, permissions, jobs, events, audit, AI, UI blueprints, and more. Assembles `ExecutionContext` by pre-loading entity data from PostgreSQL/Neo4j, invokes the VM, persists results.
 
 The execution loop:
 ```
@@ -19,17 +19,19 @@ MCP Request
   → MCP Response
 ```
 
-## Kernel VM Handlers (9 categories, ~53 total)
+## Kernel VM Handlers (7 categories, 52 total)
 
-| Category | Handlers | Examples |
-|----------|----------|---------|
-| Computation (9) | Calculate values from BOM | `core:bom_sum`, `core:bom_weighted`, `core:unit_convert`, `core:ratio` |
-| Validation (10) | Pass/fail checks | `core:threshold_check`, `core:absence_check`, `core:list_check`, `core:completeness_check` |
-| Logic Gates (7) | Compose handlers | `core:and`, `core:or`, `core:if_then`, `core:for_each`, `core:pipe` |
-| Graph (8) | Supply chain traversal | `core:trace_upstream`, `core:trace_downstream`, `core:impact_analysis`, `core:find_path` |
-| Resolution (8) | Conflict resolution | `core:data_conflict_resolve`, `core:find_substitute`, `core:entity_match` |
-| Temporal (2) | Deadlines, schedules | `core:deadline`, `core:schedule` |
-| AI (9) | LLM-powered (delegated via bridge) | `ai:document_extract`, `ai:compliance_interpret`, `ai:gap_analysis` |
+All handler names are **generic primitives**. Domain semantics (compliance, BOM, regulatory) belong in packs, not handler names.
+
+| Category | Count | Purpose | Handlers |
+|----------|-------|---------|----------|
+| Computation | 9 | Aggregate and transform values | `core:collection_sum`, `core:collection_max`, `core:collection_min`, `core:weighted_sum`, `core:count`, `core:rollup`, `core:average`, `core:ratio`, `core:unit_convert` |
+| Validation | 10 | Pass/fail checks | `core:threshold_check`, `core:presence_check`, `core:absence_check`, `core:list_check`, `core:date_check`, `core:document_check`, `core:credential_check`, `core:enum_check`, `core:pattern_check`, `core:completeness_check` |
+| Logic Gates | 6 | Compose handlers | `core:and`, `core:or`, `core:not`, `core:if_then`, `core:for_each`, `core:pipe` |
+| Graph | 8 | Traverse pre-loaded graph data | `core:trace_upstream`, `core:trace_downstream`, `core:find_path`, `core:subgraph_extract`, `core:impact_analysis`, `core:shortest_path`, `core:neighbors`, `core:cycle_detect` |
+| Resolution | 8 | Resolve conflicts and rank | `core:data_conflict_resolve`, `core:find_substitute`, `core:rule_resolve`, `core:priority_rank`, `core:entity_match`, `core:version_select`, `core:threshold_interpolate`, `core:action_sequence` |
+| Temporal | 2 | Deadlines and schedules | `core:deadline`, `core:schedule` |
+| AI | 9 | LLM-powered (delegated via bridge) | `ai:extract`, `ai:interpret`, `ai:gap_analysis`, `ai:query`, `ai:generate`, `ai:classify`, `ai:detect_anomaly`, `ai:explain`, `ai:score` |
 
 All graph data is pre-loaded by Platform Services into ExecutionContext — kernel-vm never accesses Neo4j directly. AI handlers define contracts in kernel-vm but execution is delegated to Platform Services via a bridge mechanism.
 
@@ -63,23 +65,23 @@ AST validated at compile-time and runtime: handler existence, config schema matc
 ## Platform Services MCP Tools
 
 **Tier 1 (38 tools):**
-- `entity:*` (11) — define, extend, describe, create, read, update, delete, list, bulk ops
-- `relation:*` (6) — define, create, update, delete, list relation types and instances
-- `search:*` (6) — configure indexes, full-text/semantic/similarity search, saved searches
-- `permission:*` (7) — roles, grants, revocations, runtime checks, groups
-- `file:*` (8) — upload, attach, get, parse, versioning (Cloudflare R2 backend)
+- `entity:*` (11) — define, extend, describe, create, get, update, delete, list, list_types, bulk_create, bulk_update
+- `relation:*` (6) — define, create, update, delete, list, list_types
+- `search:*` (6) — configure_index, query, semantic, similar, save, list_saved
+- `permission:*` (7) — define_role, grant_role, revoke_role, check, list_grants, list_principals, define_group
+- `file:*` (8) — upload, attach, get, list, delete, parse, list_attachments, create_version
 
 **Tier 2 (52 tools):**
-- `version:*` (6) — history, diff, restore, branch, merge
+- `version:*` (6) — history, get, compare, restore, branch, merge
 - `task:*` (6) — create, update, complete, list, reassign, delegation
 - `comment:*` (5) — threaded comments with mentions
 - `notify:*` (6) — channels, send, preferences
-- `audit:*` (3) — query, export, retention
-- `job:*` (5) — submit, status, cancel, retry background jobs
+- `audit:*` (2) — query, export
+- `job:*` (5) — submit, status, cancel, list, retry
 - `template:*` (4) — entity templates and cloning
 - `i18n:*` (4) — field translations
-- `ai:*` (7+) — document extract, classify, risk score, explain, query, conversation, design assistance
-- `ui:*` (4) — generative UI views and actions
+- `ai:*` (7) — extract, interpret, classify, generate, query, explain, score (direct MCP tools, outside rule evaluation)
+- `ui:*` (7) — define_view, get_view, list_views, delete_view, register_action, merge_views, list_components
 - `events:*` (2) — subscribe/emit internal events
 
 ## Registry & Packs (`packages/registry-sdk`)
@@ -100,11 +102,23 @@ Five primitives: **Identity** (GSR resolution), **Claims** (signed VCs), **Reque
 
 DID-based identity. Each spoke gets a DID at boot. Trust verified via graph path traversal to tenant-defined trust anchors. Spokes communicate P2P; Hub provides Network Directory for DID → endpoint resolution only.
 
+## UI Architecture (Three-Tier Model)
+
+**Tier 0 (Kernel Primitives):** Radix UI + Tailwind CSS. Headless logic: accessibility, focus management, keyboard navigation. Zero visual styling. This is a dependency, not something we build.
+
+**Tier 1 (Standard Library):** `packages/ui-library`. shadcn components skinned with Figma design tokens for industrial density. ~10 core components: Shell, Sidebar, DataGrid, Form, StatusBadge, ScoreGauge, ActionPanel, DetailCard, Timeline, CommandBar. Workflow: shadcn MCP scaffolds component → Figma MCP extracts tokens → AI skins component.
+
+**Tier 2 (Generative Layer):** JSON blueprints stored via `ui:*` MCP tools. The AI agent calls `ui:define_view` to describe pages. The OS reads the blueprint and renders Tier 1 components. View cascade: system layer + company layer + user layer → merged into final view.
+
+**Universal Shell** (`apps/universal-shell`): Domain-agnostic React app hosted once. Connects to any spoke via URL parameter or custom domain lookup. Contains the ViewRenderer that maps blueprint JSON to Tier 1 components. Same code serves `app.eurocomply.eu` and `plm.acme.com` — the spoke determines the product.
+
+**Hub Dashboard** (`apps/hub-dashboard`, formerly `web-portal`): Account management only — billing, spoke list, provisioning status. Does NOT use the blueprint system. Build deferred.
+
 ## AI Runtime (Two-Tier Data Sovereignty)
 
-**Tier A (self-hosted 7B-13B):** Used when customer data is involved — document extraction, classification, risk scoring, explanations, conversations. Data never leaves infrastructure.
+**Tier A (self-hosted, Ollama):** Used when customer data is involved — document extraction, classification, scoring, explanations. Data never leaves infrastructure. OpenAI-compatible API.
 
-**Tier B (cloud API permitted):** Used for reasoning over schemas/rules only — entity design, workflow design, regulation interpretation. No customer data exposure.
+**Tier B (cloud API, Anthropic):** Used for reasoning over schemas/rules only — interpretation, gap analysis, generation. No customer data exposure. Structured output via tool use.
 
 Gateway enforces classification: if context contains entity data → Tier A; schemas/rules only → Tier B; ambiguous → Tier A.
 
@@ -122,13 +136,15 @@ Gateway enforces classification: if context contains entity data → Tier A; sch
 
 ```
 apps/
-  spoke-runtime/          # Customer OS — wires kernel + services, serves MCP (HTTP/SSE + stdio) + Hono REST
+  spoke-runtime/          # Customer OS backend — wires kernel + services, serves MCP (HTTP/SSE + stdio) + Hono REST
   hub-control-plane/      # SaaS backend: billing/, provisioning/, registry-api/, fleet/, network-directory/
-  web-portal/             # Next.js frontend: marketing/, onboarding/, dashboard/
+  hub-dashboard/          # Hub account management UI — billing, spoke list (was web-portal, build deferred)
+  universal-shell/        # Generic UI runtime — connects to any spoke, renders blueprints via ViewRenderer
 
 packages/
   kernel-vm/              # Pure computation engine (ZERO runtime deps)
   platform-services/      # Stateful layer (depends on kernel-vm, types)
+  ui-library/             # Tier 1 UI components — shadcn + Figma design tokens, industrial density
   network-protocol/       # A2A primitives (depends on types)
   registry-sdk/           # Pack installer + simulator (depends on kernel-vm, types)
   cli/                    # eurocomply CLI: lint, test, publish, simulate
@@ -160,11 +176,13 @@ kernel-vm (zero runtime deps)
 platform-services → kernel-vm, types
 registry-sdk → kernel-vm, types
 network-protocol → types
+ui-library (standalone — Radix + Tailwind + shadcn)
 cli → kernel-vm, registry-sdk, types
   ↑
 spoke-runtime → kernel-vm, platform-services, registry-sdk, types
 hub-control-plane → registry-sdk, network-protocol, types
-web-portal → types
+hub-dashboard → types
+universal-shell → ui-library, types
 ```
 
 ## Workflow Discipline
