@@ -2,6 +2,7 @@
   "name": "@eurocomply/spoke-runtime",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -14,9 +15,12 @@
     "@eurocomply/kernel-vm": "workspace:*",
     "@eurocomply/platform-services": "workspace:*",
     "@eurocomply/registry-sdk": "workspace:*",
-    "@eurocomply/types": "workspace:*"
+    "@eurocomply/types": "workspace:*",
+    "hono": "^4.0.0"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^10.0.0",
+    "testcontainers": "^10.0.0",
     "tsx": "^4.0.0",
     "vitest": "^3.0.0"
   }
