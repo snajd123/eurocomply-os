@@ -3,6 +3,7 @@ import type { AuditLogger } from '../services/audit.js';
 import type { JobService } from '../services/job.js';
 import type { FileService } from '../services/file.js';
 import type { ExecutionLoop } from '../execution-loop.js';
+import type { PackService } from '../services/pack.js';
 import type { PlatformServiceContext } from '../context.js';
 import type { ServiceResult } from '@eurocomply/types';
 
@@ -22,6 +23,7 @@ export interface MCPToolRouterDeps {
   jobService: JobService;
   fileService: FileService;
   executionLoop: ExecutionLoop;
+  packService?: PackService;
 }
 
 export function createMCPToolRouter(deps: MCPToolRouterDeps): MCPToolRouter {
@@ -91,6 +93,30 @@ export function createMCPToolRouter(deps: MCPToolRouterDeps): MCPToolRouter {
     definition: { name: 'evaluate', description: 'Evaluate a rule against an entity' },
     handler: (input, ctx) => deps.executionLoop.evaluate(ctx, input as any),
   };
+
+  // Registry tools
+  if (deps.packService) {
+    tools['registry:install'] = {
+      definition: { name: 'registry:install', description: 'Install a pack from manifest' },
+      handler: (input, ctx) => deps.packService!.install(ctx, input as any),
+    };
+    tools['registry:list'] = {
+      definition: { name: 'registry:list', description: 'List installed packs' },
+      handler: (_input, ctx) => deps.packService!.list(ctx),
+    };
+    tools['registry:lock'] = {
+      definition: { name: 'registry:lock', description: 'Get a compliance lock by ID' },
+      handler: (input, ctx) => deps.packService!.getLock(ctx, (input as any).lock_id),
+    };
+    tools['registry:locks'] = {
+      definition: { name: 'registry:locks', description: 'List compliance locks' },
+      handler: (_input, ctx) => deps.packService!.listLocks(ctx),
+    };
+    tools['registry:save-lock'] = {
+      definition: { name: 'registry:save-lock', description: 'Save a compliance lock' },
+      handler: (input, ctx) => deps.packService!.saveLock(ctx, input as any),
+    };
+  }
 
   return {
     listTools(): MCPToolDefinition[] {
