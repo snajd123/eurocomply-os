@@ -1,7 +1,8 @@
 import type { PostgresConnectionManager } from '../db/postgres.js';
 import type { Neo4jConnectionManager } from '../db/neo4j.js';
 import type { AuditLogger } from './audit.js';
-import type { ServiceContext, ServiceResult } from '@eurocomply/types';
+import type { PlatformServiceContext } from '../context.js';
+import type { ServiceResult } from '@eurocomply/types';
 
 // --- Input/Output types ---
 
@@ -67,13 +68,14 @@ export class RelationService {
   ) {}
 
   async defineType(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: RelationTypeDefinition,
   ): Promise<ServiceResult<RelationTypeOutput>> {
-    await this.db.query(
+    const db = ctx.tx ?? this.db;
+    await db.query(
       `INSERT INTO relation_types (relation_type, tenant_id, from_entity_type, to_entity_type, cardinality, constraints, inverse_type, cascade_delete)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (relation_type) DO UPDATE SET
+       ON CONFLICT (tenant_id, relation_type) DO UPDATE SET
          from_entity_type = $3, to_entity_type = $4, cardinality = $5,
          constraints = $6, inverse_type = $7, cascade_delete = $8,
          updated_at = now()`,
@@ -97,13 +99,14 @@ export class RelationService {
   }
 
   async create(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: RelationCreateInput,
   ): Promise<ServiceResult<RelationCreateOutput>> {
-    // Verify relation type is defined
-    const typeCheck = await this.db.query(
-      'SELECT * FROM relation_types WHERE relation_type = $1',
-      [input.relation_type]
+    // Verify relation type is defined for this tenant
+    const db = ctx.tx ?? this.db;
+    const typeCheck = await db.query(
+      'SELECT * FROM relation_types WHERE tenant_id = $1 AND relation_type = $2',
+      [ctx.tenant_id, input.relation_type]
     );
     if (typeCheck.rows.length === 0) {
       return {
@@ -205,7 +208,7 @@ export class RelationService {
   }
 
   async list(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: RelationListInput,
   ): Promise<ServiceResult<RelationListOutput>> {
     const items: RelationListItem[] = [];

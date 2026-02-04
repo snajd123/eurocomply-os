@@ -45,7 +45,7 @@ describe('MCP Tool Router', () => {
     const jobService = new JobService(db);
     const fileService = new FileService(db, audit, new MemoryStorageBackend());
     const registry = createDefaultRegistry();
-    const executionLoop = new ExecutionLoop(entityService, audit, registry);
+    const executionLoop = new ExecutionLoop(db, entityService, audit, registry);
 
     router = createMCPToolRouter({
       entityService,

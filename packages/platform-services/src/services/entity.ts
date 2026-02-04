@@ -1,7 +1,8 @@
 import { v4 as uuid } from 'uuid';
-import type { PostgresConnectionManager } from '../db/postgres.js';
+import type { PostgresConnectionManager, Queryable } from '../db/postgres.js';
 import type { AuditLogger } from './audit.js';
-import type { ServiceContext, ServiceResult, FilterExpression } from '@eurocomply/types';
+import type { PlatformServiceContext } from '../context.js';
+import type { ServiceResult, FilterExpression } from '@eurocomply/types';
 
 // --- Input/Output types ---
 
@@ -128,13 +129,14 @@ export class EntityService {
   ) {}
 
   async defineType(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: EntityTypeDefinition,
   ): Promise<ServiceResult<{ entity_type: string }>> {
-    await this.db.query(
+    const db = ctx.tx ?? this.db;
+    await db.query(
       `INSERT INTO entity_types (entity_type, tenant_id, schema)
        VALUES ($1, $2, $3)
-       ON CONFLICT (entity_type) DO UPDATE SET schema = $3, updated_at = now()`,
+       ON CONFLICT (tenant_id, entity_type) DO UPDATE SET schema = $3, updated_at = now()`,
       [input.entity_type, ctx.tenant_id, JSON.stringify(input.schema)]
     );
 
@@ -142,13 +144,14 @@ export class EntityService {
   }
 
   async create(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: EntityCreateInput,
   ): Promise<ServiceResult<EntityCreateOutput>> {
-    // Verify entity type exists
-    const typeCheck = await this.db.query(
-      'SELECT entity_type FROM entity_types WHERE entity_type = $1',
-      [input.entity_type]
+    const db = ctx.tx ?? this.db;
+    // Verify entity type exists for this tenant
+    const typeCheck = await db.query(
+      'SELECT entity_type FROM entity_types WHERE tenant_id = $1 AND entity_type = $2',
+      [ctx.tenant_id, input.entity_type]
     );
     if (typeCheck.rows.length === 0) {
       return { success: false, data: { entity_id: '', entity_type: input.entity_type, version: 0, data: {} } };
@@ -156,7 +159,7 @@ export class EntityService {
 
     const entityId = uuid();
 
-    await this.db.query(
+    await db.query(
       `INSERT INTO entities (entity_id, entity_type, tenant_id, data, version)
        VALUES ($1, $2, $3, $4, 1)`,
       [entityId, input.entity_type, ctx.tenant_id, JSON.stringify(input.data)]
@@ -182,10 +185,11 @@ export class EntityService {
   }
 
   async get(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: EntityGetInput,
   ): Promise<ServiceResult<EntityGetOutput>> {
-    const result = await this.db.query(
+    const db = ctx.tx ?? this.db;
+    const result = await db.query(
       `SELECT * FROM entities WHERE entity_id = $1 AND tenant_id = $2`,
       [input.entity_id, ctx.tenant_id]
     );
@@ -226,12 +230,12 @@ export class EntityService {
   }
 
   async update(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: EntityUpdateInput,
   ): Promise<ServiceResult<EntityCreateOutput>> {
-    return await this.db.transaction(async (client) => {
+    const execute = async (db: Queryable, txCtx: PlatformServiceContext): Promise<ServiceResult<EntityCreateOutput>> => {
       // Get current state
-      const current = await client.query(
+      const current = await db.query(
         'SELECT * FROM entities WHERE entity_id = $1 AND tenant_id = $2 FOR UPDATE',
         [input.entity_id, ctx.tenant_id]
       );
@@ -246,14 +250,14 @@ export class EntityService {
       const mergedData = { ...oldData, ...input.data };
 
       // Store version snapshot
-      await client.query(
+      await db.query(
         `INSERT INTO entity_versions (version_id, entity_id, version, data, changed_by)
          VALUES ($1, $2, $3, $4, $5)`,
         [uuid(), row.entity_id, row.version, JSON.stringify(oldData), ctx.principal.id]
       );
 
       // Update entity
-      await client.query(
+      await db.query(
         `UPDATE entities SET data = $1, version = $2, updated_at = now()
          WHERE entity_id = $3`,
         [JSON.stringify(mergedData), newVersion, input.entity_id]
@@ -263,7 +267,7 @@ export class EntityService {
         k => JSON.stringify(oldData[k]) !== JSON.stringify(input.data[k])
       );
 
-      const auditEntry = await this.audit.log(ctx, {
+      const auditEntry = await this.audit.log(txCtx, {
         action: 'update',
         resource: { entity_type: row.entity_type, entity_id: input.entity_id },
         changes: { fields_changed: changedFields, before: oldData, after: mergedData },
@@ -280,13 +284,31 @@ export class EntityService {
         },
         audit_entry: auditEntry as any,
       };
-    });
+    };
+
+    // If caller provided a transaction, use it directly (no nested tx)
+    if (ctx.tx) {
+      return execute(ctx.tx, ctx);
+    }
+
+    // Otherwise create our own UnitOfWork
+    const uow = await this.db.beginTransaction();
+    try {
+      const txCtx: PlatformServiceContext = { ...ctx, tx: uow };
+      const result = await execute(uow, txCtx);
+      await uow.commit();
+      return result;
+    } catch (err) {
+      await uow.rollback();
+      throw err;
+    }
   }
 
   async list(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: EntityListInput,
   ): Promise<ServiceResult<EntityListOutput>> {
+    const db = ctx.tx ?? this.db;
     const limit = input.limit ?? 50;
     const offset = input.offset ?? 0;
 
@@ -301,13 +323,13 @@ export class EntityService {
       paramOffset = filterResult.nextOffset;
     }
 
-    const countResult = await this.db.query(
+    const countResult = await db.query(
       `SELECT count(*)::int as total FROM entities WHERE entity_type = $1 AND tenant_id = $2${filterClause}`,
       baseParams.slice() // copy to avoid mutation between queries
     );
 
     const listParams = [...baseParams, limit, offset];
-    const result = await this.db.query(
+    const result = await db.query(
       `SELECT * FROM entities WHERE entity_type = $1 AND tenant_id = $2${filterClause}
        ORDER BY created_at DESC LIMIT $${paramOffset} OFFSET $${paramOffset + 1}`,
       listParams

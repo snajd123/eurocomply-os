@@ -1,7 +1,10 @@
 // Database
-export { PostgresConnectionManager, type PostgresConfig } from './db/postgres.js';
+export { PostgresConnectionManager, type PostgresConfig, type Queryable, UnitOfWork } from './db/postgres.js';
 export { Neo4jConnectionManager, type Neo4jConfig } from './db/neo4j.js';
 export { runMigrations } from './db/migrate.js';
+
+// Context
+export type { PlatformServiceContext } from './context.js';
 
 // Services
 export { AuditLogger } from './services/audit.js';

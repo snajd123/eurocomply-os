@@ -1,6 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import type { PostgresConnectionManager } from '../db/postgres.js';
-import type { ServiceContext, ServiceResult } from '@eurocomply/types';
+import type { PlatformServiceContext } from '../context.js';
+import type { ServiceResult } from '@eurocomply/types';
 
 export interface JobSubmitInput {
   job_type: string;
@@ -44,12 +45,13 @@ export class JobService {
   constructor(private db: PostgresConnectionManager) {}
 
   async submit(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: JobSubmitInput,
   ): Promise<ServiceResult<JobSubmitOutput>> {
+    const db = ctx.tx ?? this.db;
     const jobId = uuid();
 
-    await this.db.query(
+    await db.query(
       `INSERT INTO jobs (job_id, tenant_id, job_type, payload, submitted_by)
        VALUES ($1, $2, $3, $4, $5)`,
       [jobId, ctx.tenant_id, input.job_type, JSON.stringify(input.payload), ctx.principal.id]
@@ -62,10 +64,11 @@ export class JobService {
   }
 
   async status(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: JobStatusInput,
   ): Promise<ServiceResult<JobStatusOutput>> {
-    const result = await this.db.query(
+    const db = ctx.tx ?? this.db;
+    const result = await db.query(
       'SELECT * FROM jobs WHERE job_id = $1 AND tenant_id = $2',
       [input.job_id, ctx.tenant_id]
     );
@@ -79,10 +82,11 @@ export class JobService {
   }
 
   async claim(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     jobType: string,
   ): Promise<ClaimedJob | null> {
-    const result = await this.db.query(
+    const db = ctx.tx ?? this.db;
+    const result = await db.query(
       `UPDATE jobs SET status = 'running', started_at = now()
        WHERE job_id = (
          SELECT job_id FROM jobs
@@ -102,11 +106,12 @@ export class JobService {
   }
 
   async complete(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: JobCompleteInput,
   ): Promise<void> {
+    const db = ctx.tx ?? this.db;
     const status = input.error ? 'failed' : 'completed';
-    await this.db.query(
+    await db.query(
       `UPDATE jobs SET status = $1, result = $2, error = $3, completed_at = now()
        WHERE job_id = $4 AND tenant_id = $5`,
       [

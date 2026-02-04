@@ -4,6 +4,41 @@ const { Pool } = pg;
 type PoolClient = pg.PoolClient;
 type QueryResult = pg.QueryResult;
 
+export interface Queryable {
+  query(text: string, params?: unknown[]): Promise<QueryResult>;
+}
+
+export class UnitOfWork implements Queryable {
+  private finished = false;
+
+  constructor(private client: PoolClient) {}
+
+  async query(text: string, params?: unknown[]): Promise<QueryResult> {
+    if (this.finished) throw new Error('UnitOfWork already finished');
+    return this.client.query(text, params);
+  }
+
+  async commit(): Promise<void> {
+    if (this.finished) return;
+    this.finished = true;
+    try {
+      await this.client.query('COMMIT');
+    } finally {
+      this.client.release();
+    }
+  }
+
+  async rollback(): Promise<void> {
+    if (this.finished) return;
+    this.finished = true;
+    try {
+      await this.client.query('ROLLBACK');
+    } finally {
+      this.client.release();
+    }
+  }
+}
+
 export interface PostgresConfig {
   host: string;
   port: number;
@@ -13,7 +48,7 @@ export interface PostgresConfig {
   max?: number;
 }
 
-export class PostgresConnectionManager {
+export class PostgresConnectionManager implements Queryable {
   private pool: pg.Pool;
 
   constructor(config: PostgresConfig) {
@@ -29,6 +64,12 @@ export class PostgresConnectionManager {
 
   async query(text: string, params?: unknown[]): Promise<QueryResult> {
     return this.pool.query(text, params);
+  }
+
+  async beginTransaction(): Promise<UnitOfWork> {
+    const client = await this.pool.connect();
+    await client.query('BEGIN');
+    return new UnitOfWork(client);
   }
 
   async transaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {

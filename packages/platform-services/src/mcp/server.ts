@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { MCPToolRouter } from './tools.js';
-import type { ServiceContext } from '@eurocomply/types';
+import type { PlatformServiceContext } from '../context.js';
 
 export function createMCPServer(router: MCPToolRouter) {
   const app = new Hono();
@@ -13,10 +13,10 @@ export function createMCPServer(router: MCPToolRouter) {
     const body = await c.req.json() as {
       tool: string;
       input: Record<string, unknown>;
-      context?: Partial<ServiceContext>;
+      context?: Partial<PlatformServiceContext>;
     };
 
-    const ctx: ServiceContext = {
+    const ctx: PlatformServiceContext = {
       tenant_id: body.context?.tenant_id ?? 'default',
       principal: body.context?.principal ?? { type: 'system', id: 'mcp-server' },
       correlation_id: body.context?.correlation_id ?? crypto.randomUUID(),

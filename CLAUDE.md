@@ -193,3 +193,6 @@ When using subagent-driven-development to execute implementation plans:
 8. Every mutation generates an audit entry; compliance locks and audit logs are append-only
 9. Reserved MCP namespaces (`core:`, `entity:`, `relation:`, `ai:`, `meta:`, `a2a:`, `registry:`, etc.) cannot be used by Driver Packs
 10. Public packs cannot depend on private CIDs
+11. `tenant_id` exists in all Platform Services tables for Hub code reuse — Spokes are single-tenant (dedicated DB per customer) so `tenant_id` is redundant for isolation there, but the Hub is multi-tenant. Composite PKs `(tenant_id, entity_type)` and `(tenant_id, relation_type)` keep the schema valid for both. Do not remove `tenant_id` from the schema.
+12. Platform Services methods that touch PostgreSQL must use `ctx.tx ?? this.db` for queries — this allows callers to pass a `UnitOfWork` transaction via `PlatformServiceContext.tx` so multiple service calls share a single PG transaction. Using `this.db` directly bypasses the caller's transaction and reintroduces the half-committed state bug (e.g., evaluation persisted without its audit entry).
+13. `PlatformServiceContext` (extends `ServiceContext` with optional `tx?: Queryable`) lives in `packages/platform-services/src/context.ts`, not in `@eurocomply/types`. DB-layer types (`Queryable`, `UnitOfWork`) must not leak into the shared types package.

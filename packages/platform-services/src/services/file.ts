@@ -1,7 +1,8 @@
 import { v4 as uuid } from 'uuid';
 import type { PostgresConnectionManager } from '../db/postgres.js';
 import type { AuditLogger } from './audit.js';
-import type { ServiceContext, ServiceResult } from '@eurocomply/types';
+import type { PlatformServiceContext } from '../context.js';
+import type { ServiceResult } from '@eurocomply/types';
 
 export interface StorageBackend {
   put(key: string, data: Buffer): Promise<void>;
@@ -50,15 +51,16 @@ export class FileService {
   ) {}
 
   async upload(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: FileUploadInput,
   ): Promise<ServiceResult<FileUploadOutput>> {
+    const db = ctx.tx ?? this.db;
     const fileId = uuid();
     const storageKey = `${ctx.tenant_id}/${fileId}/${input.filename}`;
 
     await this.storage.put(storageKey, input.content);
 
-    await this.db.query(
+    await db.query(
       `INSERT INTO files (file_id, tenant_id, filename, content_type, size_bytes, storage_key, entity_id, entity_type, uploaded_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
@@ -96,10 +98,11 @@ export class FileService {
   }
 
   async get(
-    ctx: ServiceContext,
+    ctx: PlatformServiceContext,
     input: FileGetInput,
   ): Promise<ServiceResult<FileGetOutput>> {
-    const result = await this.db.query(
+    const db = ctx.tx ?? this.db;
+    const result = await db.query(
       'SELECT * FROM files WHERE file_id = $1 AND tenant_id = $2',
       [input.file_id, ctx.tenant_id]
     );

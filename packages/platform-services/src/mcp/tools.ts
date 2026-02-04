@@ -3,7 +3,8 @@ import type { AuditLogger } from '../services/audit.js';
 import type { JobService } from '../services/job.js';
 import type { FileService } from '../services/file.js';
 import type { ExecutionLoop } from '../execution-loop.js';
-import type { ServiceContext, ServiceResult } from '@eurocomply/types';
+import type { PlatformServiceContext } from '../context.js';
+import type { ServiceResult } from '@eurocomply/types';
 
 export interface MCPToolDefinition {
   name: string;
@@ -12,7 +13,7 @@ export interface MCPToolDefinition {
 
 export interface MCPToolRouter {
   listTools(): MCPToolDefinition[];
-  callTool(name: string, input: Record<string, unknown>, ctx: ServiceContext): Promise<ServiceResult<unknown>>;
+  callTool(name: string, input: Record<string, unknown>, ctx: PlatformServiceContext): Promise<ServiceResult<unknown>>;
 }
 
 export interface MCPToolRouterDeps {
@@ -26,7 +27,7 @@ export interface MCPToolRouterDeps {
 export function createMCPToolRouter(deps: MCPToolRouterDeps): MCPToolRouter {
   const tools: Record<string, {
     definition: MCPToolDefinition;
-    handler: (input: Record<string, unknown>, ctx: ServiceContext) => Promise<ServiceResult<unknown>>;
+    handler: (input: Record<string, unknown>, ctx: PlatformServiceContext) => Promise<ServiceResult<unknown>>;
   }> = {};
 
   // Entity tools
@@ -99,7 +100,7 @@ export function createMCPToolRouter(deps: MCPToolRouterDeps): MCPToolRouter {
     async callTool(
       name: string,
       input: Record<string, unknown>,
-      ctx: ServiceContext,
+      ctx: PlatformServiceContext,
     ): Promise<ServiceResult<unknown>> {
       const tool = tools[name];
       if (!tool) {

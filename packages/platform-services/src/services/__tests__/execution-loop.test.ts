@@ -37,7 +37,7 @@ describe('ExecutionLoop', () => {
     audit = new AuditLogger(db);
     entityService = new EntityService(db, audit);
     registry = createDefaultRegistry();
-    loop = new ExecutionLoop(entityService, audit, registry);
+    loop = new ExecutionLoop(db, entityService, audit, registry);
 
     // Set up test data
     await entityService.defineType(ctx, {
@@ -138,5 +138,42 @@ describe('ExecutionLoop', () => {
       action: 'evaluate',
     });
     expect(entries.length).toBe(1);
+  });
+
+  it('should rollback audit entry when transaction fails', async () => {
+    const created = await entityService.create(ctx, {
+      entity_type: 'product',
+      data: { name: 'Rollback Product', lead_concentration: 0.0002 },
+    });
+
+    // Create a loop with a broken audit logger that throws after VM evaluation
+    const brokenAudit = {
+      log: async () => { throw new Error('forced audit failure'); },
+      query: audit.query.bind(audit),
+    } as unknown as AuditLogger;
+    const brokenLoop = new ExecutionLoop(db, entityService, brokenAudit, registry);
+
+    await expect(brokenLoop.evaluate(ctx, {
+      entity_type: 'product',
+      entity_id: created.data.entity_id,
+      rule: {
+        handler: 'core:threshold_check',
+        config: {
+          value: { field: 'lead_concentration' },
+          operator: 'lt',
+          threshold: 0.001,
+        },
+      },
+      compliance_lock_id: 'lock_test_rollback',
+      vertical_id: 'cosmetics',
+      market: 'EU',
+    })).rejects.toThrow('forced audit failure');
+
+    // Verify no audit entry was persisted (transaction rolled back)
+    const entries = await audit.query(ctx.tenant_id, {
+      resource_entity_id: created.data.entity_id,
+      action: 'evaluate',
+    });
+    expect(entries.length).toBe(0);
   });
 });

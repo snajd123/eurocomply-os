@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import type { PostgresConnectionManager } from '../db/postgres.js';
-import type { ServiceContext } from '@eurocomply/types';
+import type { PlatformServiceContext } from '../context.js';
 
 export interface AuditLogInput {
   action: string;
@@ -41,9 +41,10 @@ interface AuditRow {
 export class AuditLogger {
   constructor(private db: PostgresConnectionManager) {}
 
-  async log(ctx: ServiceContext, input: AuditLogInput): Promise<AuditRow> {
+  async log(ctx: PlatformServiceContext, input: AuditLogInput): Promise<AuditRow> {
     const id = uuid();
-    const result = await this.db.query(
+    const db = ctx.tx ?? this.db;
+    const result = await db.query(
       `INSERT INTO audit_log (
         audit_entry_id, correlation_id, tenant_id,
         actor_type, actor_id, action,

@@ -77,7 +77,7 @@ describe('E2E: Full Execution Loop', () => {
     entityService = new EntityService(db, audit);
     relationService = new RelationService(db, neo4j, audit);
     const registry = createDefaultRegistry();
-    executionLoop = new ExecutionLoop(entityService, audit, registry, relationService);
+    executionLoop = new ExecutionLoop(db, entityService, audit, registry, relationService);
   }, 120_000);
 
   afterAll(async () => {
