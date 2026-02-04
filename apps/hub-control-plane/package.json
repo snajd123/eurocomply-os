@@ -2,6 +2,7 @@
   "name": "@eurocomply/hub-control-plane",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -14,9 +15,12 @@
     "@eurocomply/network-protocol": "workspace:*",
     "@eurocomply/registry-sdk": "workspace:*",
     "@eurocomply/types": "workspace:*",
-    "hono": "^4.11.7"
+    "hono": "^4.11.7",
+    "pg": "^8.13.0"
   },
   "devDependencies": {
+    "@testcontainers/postgresql": "^10.0.0",
+    "@types/pg": "^8.0.0",
     "tsx": "^4.0.0",
     "vitest": "^3.0.0"
   }
