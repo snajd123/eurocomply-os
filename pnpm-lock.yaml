@@ -58,6 +58,9 @@ importers:
         specifier: ^4.0.0
         version: 4.11.7
     devDependencies:
+      '@eurocomply/hub-control-plane':
+        specifier: workspace:*
+        version: link:../hub-control-plane
       '@testcontainers/postgresql':
         specifier: ^10.0.0
         version: 10.28.0
