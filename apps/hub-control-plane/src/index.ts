@@ -1,2 +1,11 @@
 export { createRegistryAPI } from './registry-api.js';
 export { RegistryStore, type PublishedPack } from './registry-store.js';
+export { createHubServer } from './hub-server.js';
+export { HubDb } from './db/connection.js';
+export { runHubMigrations } from './db/migrate.js';
+export { OrganizationService } from './services/organization.js';
+export { ProductCatalogService } from './services/product-catalog.js';
+export { BillingService, type BillingProvider } from './services/billing.js';
+export { ProvisioningOrchestrator, type InfrastructureProvider } from './services/provisioning.js';
+export { FleetService } from './services/fleet.js';
+export { NetworkDirectoryService } from './services/network-directory.js';
