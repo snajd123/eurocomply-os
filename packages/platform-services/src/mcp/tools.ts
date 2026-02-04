@@ -28,9 +28,15 @@ export class MCPValidationError extends MCPError {
   }
 }
 
+interface MCPToolMeta {
+  name: string;
+  description: string;
+}
+
 export interface MCPToolDefinition {
   name: string;
   description: string;
+  input_schema: Record<string, unknown>;
 }
 
 export interface MCPToolRouter {
@@ -49,7 +55,7 @@ export interface MCPToolRouterDeps {
 
 export function createMCPToolRouter(deps: MCPToolRouterDeps): MCPToolRouter {
   const tools: Record<string, {
-    definition: MCPToolDefinition;
+    definition: MCPToolMeta;
     handler: (input: Record<string, unknown>, ctx: PlatformServiceContext) => Promise<ServiceResult<unknown>>;
   }> = {};
 
@@ -141,7 +147,12 @@ export function createMCPToolRouter(deps: MCPToolRouterDeps): MCPToolRouter {
 
   return {
     listTools(): MCPToolDefinition[] {
-      return Object.values(tools).map(t => t.definition);
+      return Object.values(tools).map(t => ({
+        ...t.definition,
+        input_schema: toolInputSchemas[t.definition.name]
+          ? (toolInputSchemas[t.definition.name].toJSONSchema() as Record<string, unknown>)
+          : { type: 'object', properties: {} },
+      }));
     },
 
     async callTool(
