@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { evaluate } from './evaluator.js';
 import { createDefaultRegistry } from './handlers/index.js';
+import { HandlerRegistry } from './registry.js';
 import type { ExecutionContext, ASTNode } from '@eurocomply/types';
 
 const ctx: ExecutionContext = {
@@ -35,16 +36,65 @@ describe('evaluate', () => {
     expect(r.trace.child_traces).toHaveLength(2);
   });
 
-  it('evaluates pipe: bom_sum → threshold', () => {
+  it('evaluates pipe: collection_sum → threshold', () => {
     const ast: ASTNode = { handler: 'core:pipe', config: { steps: [
-      { handler: 'core:bom_sum', config: { source: { field: 'materials' }, field: 'lead_ppm' } },
+      { handler: 'core:collection_sum', config: { source: { field: 'materials' }, field: 'lead_ppm' } },
       { handler: 'core:threshold_check', config: { value: { input_field: 'sum' }, operator: 'lt', threshold: 100 } },
     ] } };
     const r = evaluate(ast, ctx, createDefaultRegistry());
     expect(r.success).toBe(true);
   });
 
-  it('throws on unknown handler', () => {
-    expect(() => evaluate({ handler: 'core:nope', config: {} }, ctx, createDefaultRegistry())).toThrow('Unknown handler');
+  it('returns structured error when handler throws', () => {
+    const badRegistry = new HandlerRegistry();
+    badRegistry.register({
+      id: 'core:exploder',
+      version: '1.0.0',
+      category: 'computation',
+      description: 'Always throws',
+      execute() { throw new Error('kaboom'); },
+    });
+
+    const ast: ASTNode = { handler: 'core:exploder', config: {} };
+    const r = evaluate(ast, ctx, badRegistry);
+    expect(r.success).toBe(false);
+    expect(r.trace.status).toBe('error');
+    expect(r.trace.error?.message).toBe('kaboom');
+    expect(r.explanation.summary).toContain('kaboom');
+  });
+
+  it('returns structured error for unknown handler instead of throwing', () => {
+    const ast: ASTNode = { handler: 'core:nonexistent', config: {} };
+    const r = evaluate(ast, ctx, createDefaultRegistry());
+    expect(r.success).toBe(false);
+    expect(r.trace.status).toBe('error');
+    expect(r.trace.error?.message).toContain('Unknown handler');
+  });
+
+  it('returns timeout error when evaluation exceeds time limit', () => {
+    const slowRegistry = new HandlerRegistry();
+    slowRegistry.register({
+      id: 'core:slow',
+      version: '1.0.0',
+      category: 'computation',
+      description: 'Simulates a long-running handler',
+      execute() {
+        const end = Date.now() + 100;
+        while (Date.now() < end) { /* spin */ }
+        return { success: true, value: 'done', explanation: { summary: 'done', steps: [] }, trace: { handler_id: 'core:slow', handler_version: '1.0.0', duration_ms: 100, input: {}, output: 'done', execution_path: 'root', status: 'success' as const } };
+      },
+    });
+
+    const ast: ASTNode = { handler: 'core:slow', config: {} };
+    const r = evaluate(ast, ctx, slowRegistry, { timeout_ms: 10 });
+    expect(r.success).toBe(false);
+    expect(r.trace.status).toBe('error');
+    expect(r.trace.error?.message).toContain('timeout');
+  });
+
+  it('succeeds when evaluation completes within time limit', () => {
+    const ast: ASTNode = { handler: 'core:threshold_check', config: { value: { field: 'lead_concentration' }, operator: 'lt', threshold: 0.001 } };
+    const r = evaluate(ast, ctx, createDefaultRegistry(), { timeout_ms: 5000 });
+    expect(r.success).toBe(true);
   });
 });
