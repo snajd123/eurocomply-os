@@ -19,5 +19,5 @@ export { PackService, type InstalledPack } from './services/pack.js';
 export { ExecutionLoop } from './execution-loop.js';
 
 // MCP
-export { createMCPToolRouter, type MCPToolRouter } from './mcp/tools.js';
+export { createMCPToolRouter, type MCPToolRouter, MCPError, MCPValidationError } from './mcp/tools.js';
 export { createMCPServer } from './mcp/server.js';

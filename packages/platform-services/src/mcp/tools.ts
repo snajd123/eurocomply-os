@@ -6,6 +6,27 @@ import type { ExecutionLoop } from '../execution-loop.js';
 import type { PackService } from '../services/pack.js';
 import type { PlatformServiceContext } from '../context.js';
 import type { ServiceResult } from '@eurocomply/types';
+import { toolInputSchemas } from './schemas.js';
+
+export class MCPError extends Error {
+  constructor(message: string, public readonly code: 'NOT_FOUND' | 'VALIDATION' | 'CONFLICT' | 'FORBIDDEN' | 'UNAUTHORIZED') {
+    super(message);
+    this.name = 'MCPError';
+  }
+}
+
+export interface ValidationIssue {
+  path: string;
+  message: string;
+  code: string;
+}
+
+export class MCPValidationError extends MCPError {
+  constructor(message: string, public readonly issues: ValidationIssue[]) {
+    super(message, 'VALIDATION');
+    this.name = 'MCPValidationError';
+  }
+}
 
 export interface MCPToolDefinition {
   name: string;
@@ -130,8 +151,25 @@ export function createMCPToolRouter(deps: MCPToolRouterDeps): MCPToolRouter {
     ): Promise<ServiceResult<unknown>> {
       const tool = tools[name];
       if (!tool) {
-        throw new Error(`Unknown tool: ${name}`);
+        throw new MCPError(`Unknown tool: ${name}`, 'NOT_FOUND');
       }
+
+      // Validate input against Zod schema
+      const schema = toolInputSchemas[name];
+      if (schema) {
+        const result = schema.safeParse(input);
+        if (!result.success) {
+          throw new MCPValidationError(
+            `Invalid input for ${name}`,
+            result.error.issues.map(issue => ({
+              path: issue.path.join('.'),
+              message: issue.message,
+              code: issue.code,
+            })),
+          );
+        }
+      }
+
       return tool.handler(input, ctx);
     },
   };
