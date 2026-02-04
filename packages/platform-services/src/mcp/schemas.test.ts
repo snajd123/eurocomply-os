@@ -207,15 +207,31 @@ describe('MCP tool input schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('allows additional pack manifest fields via passthrough', () => {
+    it('accepts known optional fields', () => {
       const result = RegistryInstallInputSchema.safeParse({
         name: 'eu-clp',
         version: '1.0.0',
         type: 'logic',
         author: 'ACME Corp',
         description: 'EU CLP regulation pack',
+        dependencies: { '@eurocomply/base': '1.0.0' },
       });
       expect(result.success).toBe(true);
+    });
+
+    it('strips unknown fields', () => {
+      const result = RegistryInstallInputSchema.safeParse({
+        name: 'eu-clp',
+        version: '1.0.0',
+        type: 'logic',
+        __proto__: 'attack',
+        malicious_field: true,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data as any).malicious_field).toBeUndefined();
+        expect(Object.prototype.hasOwnProperty.call(result.data, '__proto__')).toBe(false);
+      }
     });
   });
 

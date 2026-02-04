@@ -121,6 +121,11 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
     const txCtx = { ...ctx, tx: uow };
 
     try {
+      // TODO(Phase 5.2): If packs extend each other's schemas, installation order
+      // may matter. Currently loadedPacks follows readdirSync order (alphabetical).
+      // createInstallPlan handles intra-pack topological sort, and packService.install
+      // uses UPSERT, so this is safe for independent packs. If inter-pack schema
+      // dependencies arise, add topological sort here based on pack.manifest.dependencies.
       for (const pack of loadedPacks) {
         const plan = await createInstallPlan(pack, {
           availablePacks,

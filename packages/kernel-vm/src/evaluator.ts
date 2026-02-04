@@ -113,7 +113,7 @@ function evalNode(
         duration_ms: now() - start,
         execution_path: path,
         status: 'error',
-        error: { message },
+        error: { message, ...(err instanceof Error && err.stack ? { stack: err.stack } : {}) },
       }),
     };
   }

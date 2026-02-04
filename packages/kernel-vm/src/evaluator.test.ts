@@ -63,6 +63,22 @@ describe('evaluate', () => {
     expect(r.explanation.summary).toContain('kaboom');
   });
 
+  it('preserves stack trace in error result', () => {
+    const badRegistry = new HandlerRegistry();
+    badRegistry.register({
+      id: 'core:exploder',
+      version: '1.0.0',
+      category: 'computation',
+      description: 'Always throws',
+      execute() { throw new Error('kaboom'); },
+    });
+
+    const ast: ASTNode = { handler: 'core:exploder', config: {} };
+    const r = evaluate(ast, ctx, badRegistry);
+    expect(r.trace.error?.stack).toBeDefined();
+    expect(r.trace.error?.stack).toContain('kaboom');
+  });
+
   it('returns structured error for unknown handler instead of throwing', () => {
     const ast: ASTNode = { handler: 'core:nonexistent', config: {} };
     const r = evaluate(ast, ctx, createDefaultRegistry());

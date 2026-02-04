@@ -93,7 +93,27 @@ export const RegistryInstallInputSchema = z.object({
   name: z.string().min(1),
   version: z.string().min(1),
   type: z.string().min(1),
-}).passthrough(); // Allow additional pack manifest fields
+  handler_vm_version: z.string().optional(),
+  scope: z.object({
+    verticals: z.array(z.string()).optional(),
+    markets: z.array(z.string()).optional(),
+    entity_types: z.array(z.string()).optional(),
+  }).optional(),
+  regulation_ref: z.string().optional(),
+  logic_root: z.string().optional(),
+  validation_suite: z.string().optional(),
+  validation_hash: z.string().optional(),
+  author: z.union([z.string(), z.object({ name: z.string(), did: z.string().optional() })]).optional(),
+  trust_tier: z.string().optional(),
+  dependencies: z.record(z.string(), z.string()).optional(),
+  required_schemas: z.array(z.object({ id: z.string(), version: z.string() })).optional(),
+  documentation_root: z.string().optional(),
+  conflict_resolution: z.object({
+    strategy: z.string(),
+    overridable: z.boolean().optional(),
+  }).optional(),
+  description: z.string().optional(),
+}).strip();
 
 export const RegistryListInputSchema = z.object({});
 
@@ -108,7 +128,9 @@ export const RegistrySaveLockInputSchema = z.object({
   packs: z.array(z.unknown()),
   handler_vm_version: z.string().min(1),
   created_at: z.string(),
-}).passthrough();
+  tenant_id: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+}).strip();
 
 // --- Schema Map (tool name → Zod schema) ---
 

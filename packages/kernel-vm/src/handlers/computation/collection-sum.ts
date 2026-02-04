@@ -42,10 +42,32 @@ export const collectionSumHandler: HandlerDefinition = {
       );
     }
 
-    const sum = items.reduce(
-      (a, item) => a + (Number(getNestedValue(item, cfg.field)) || 0),
-      0,
-    );
+    let sum = 0;
+    const nanIndices: number[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const raw = getNestedValue(items[i], cfg.field);
+      const num = Number(raw);
+      if (Number.isNaN(num)) {
+        nanIndices.push(i);
+      } else {
+        sum += num;
+      }
+    }
+
+    if (nanIndices.length > 0) {
+      return makeFailure(
+        { sum, items_counted: items.length, nan_indices: nanIndices },
+        {
+          summary: `Non-numeric values at indices [${nanIndices.join(', ')}] for field '${cfg.field}'`,
+          handler_id: ID,
+          handler_version: VERSION,
+          input: cfg,
+          execution_path: ID,
+          duration_ms: now() - start,
+          error: { message: `${nanIndices.length} item(s) had non-numeric '${cfg.field}' values` },
+        },
+      );
+    }
 
     return makeSuccess(
       { sum, items_counted: items.length },

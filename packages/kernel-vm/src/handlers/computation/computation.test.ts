@@ -30,6 +30,40 @@ describe('core:collection_sum', () => {
     const r = collectionSumHandler.execute({ source: { field: 'materials' }, field: 'lead_ppm', filter: { field: 'type', equals: 'active' } }, null, ctx, noopEvaluate);
     expect((r.value as any).sum).toBe(15);
   });
+
+  it('returns failure when items have non-numeric field values', () => {
+    const ctxWithBadData: ExecutionContext = {
+      ...ctx,
+      entity_data: {
+        ...ctx.entity_data,
+        materials: [
+          { id: 'm1', lead_ppm: 10, type: 'active' },
+          { id: 'm2', lead_ppm: 'not-a-number', type: 'active' },
+          { id: 'm3', lead_ppm: 5, type: 'active' },
+        ],
+      },
+    };
+    const r = collectionSumHandler.execute({ source: { field: 'materials' }, field: 'lead_ppm' }, null, ctxWithBadData, noopEvaluate);
+    expect(r.success).toBe(false);
+    expect((r.value as any).nan_indices).toEqual([1]);
+  });
+
+  it('returns failure when items have undefined field values', () => {
+    const ctxWithMissing: ExecutionContext = {
+      ...ctx,
+      entity_data: {
+        ...ctx.entity_data,
+        materials: [
+          { id: 'm1', lead_ppm: 10 },
+          { id: 'm2' },
+          { id: 'm3', lead_ppm: 5 },
+        ],
+      },
+    };
+    const r = collectionSumHandler.execute({ source: { field: 'materials' }, field: 'lead_ppm' }, null, ctxWithMissing, noopEvaluate);
+    expect(r.success).toBe(false);
+    expect((r.value as any).nan_indices).toEqual([1]);
+  });
 });
 
 describe('core:unit_convert', () => {
