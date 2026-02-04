@@ -48,6 +48,9 @@ importers:
       '@eurocomply/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@hono/node-server':
+        specifier: ^1.0.0
+        version: 1.19.9(hono@4.11.7)
       hono:
         specifier: ^4.0.0
         version: 4.11.7

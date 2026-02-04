@@ -16,6 +16,7 @@
     "@eurocomply/platform-services": "workspace:*",
     "@eurocomply/registry-sdk": "workspace:*",
     "@eurocomply/types": "workspace:*",
+    "@hono/node-server": "^1.0.0",
     "hono": "^4.0.0"
   },
   "devDependencies": {
