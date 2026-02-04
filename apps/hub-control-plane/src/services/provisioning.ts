@@ -148,6 +148,11 @@ export class ProvisioningOrchestrator {
     }
 
     if (!completed.has('handoff')) {
+      await this.billing.setupSubscription({
+        org_id: row.org_id,
+        spoke_id: spokeId,
+        plan: row.plan,
+      });
       await this.db.query(`UPDATE spokes SET status = 'active', updated_at = now() WHERE spoke_id = $1`, [spokeId]);
       await this.recordEvent(spokeId, 'handoff', 'completed', {});
     }
