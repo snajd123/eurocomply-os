@@ -1,0 +1,44 @@
+{
+  "entity_types": [
+    {
+      "entity_type": "substance",
+      "schema": {
+        "fields": [
+          { "name": "name", "type": "string", "required": true },
+          { "name": "cas_number", "type": "string" },
+          { "name": "ec_number", "type": "string" },
+          { "name": "clp_classification", "type": "string" },
+          { "name": "max_concentration_pct", "type": "number" }
+        ]
+      }
+    },
+    {
+      "entity_type": "cosmetic_product",
+      "schema": {
+        "fields": [
+          { "name": "name", "type": "string", "required": true },
+          { "name": "product_type", "type": "string" },
+          { "name": "lead_ppm", "type": "number" },
+          { "name": "nickel_ppm", "type": "number" },
+          { "name": "cadmium_ppm", "type": "number" },
+          { "name": "mercury_ppm", "type": "number" },
+          { "name": "chromium_vi_ppm", "type": "number" }
+        ]
+      }
+    }
+  ],
+  "entities": {
+    "substance": [
+      { "name": "Lead", "cas_number": "7439-92-1", "ec_number": "231-100-4", "clp_classification": "Repr. 1A", "max_concentration_pct": 0.001 },
+      { "name": "Cadmium", "cas_number": "7440-43-9", "ec_number": "231-152-8", "clp_classification": "Carc. 1B", "max_concentration_pct": 0.001 },
+      { "name": "Mercury", "cas_number": "7439-97-6", "ec_number": "231-106-7", "clp_classification": "Repr. 1B", "max_concentration_pct": 0.0001 },
+      { "name": "Nickel", "cas_number": "7440-02-0", "ec_number": "231-111-4", "clp_classification": "Carc. 2", "max_concentration_pct": 0.01 },
+      { "name": "Chromium VI", "cas_number": "18540-29-9", "ec_number": "242-367-1", "clp_classification": "Carc. 1A", "max_concentration_pct": 0.0001 },
+      { "name": "Arsenic", "cas_number": "7440-38-2", "ec_number": "231-148-6", "clp_classification": "Carc. 1A", "max_concentration_pct": 0.0005 },
+      { "name": "Antimony", "cas_number": "7440-36-0", "ec_number": "231-146-5", "clp_classification": "Acute Tox. 4", "max_concentration_pct": 0.005 },
+      { "name": "Barium", "cas_number": "7440-39-3", "ec_number": "231-149-1", "clp_classification": "Acute Tox. 4", "max_concentration_pct": 0.05 },
+      { "name": "Selenium", "cas_number": "7782-49-2", "ec_number": "231-957-4", "clp_classification": "Acute Tox. 3", "max_concentration_pct": 0.001 },
+      { "name": "Formaldehyde", "cas_number": "50-00-0", "ec_number": "200-001-8", "clp_classification": "Carc. 1B", "max_concentration_pct": 0.2 }
+    ]
+  }
+}
