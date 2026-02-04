@@ -57,3 +57,27 @@ export type { PackManifest, PackAuthor, TrustTier } from './pack-manifest.js';
 
 export { LockedPackSchema, LockedSchemaSchema, ComplianceLockSchema } from './compliance-lock.js';
 export type { LockedPack, LockedSchema, ComplianceLock } from './compliance-lock.js';
+
+export {
+  SpokeStatusSchema,
+  ProvisioningPhaseSchema,
+  PlanTierSchema,
+  ProductPackRefSchema,
+  ProductPlanSchema,
+  ProductManifestSchema,
+  HeartbeatRequestSchema,
+  HeartbeatResponseSchema,
+  ProvisionRequestSchema,
+} from './hub.js';
+
+export type {
+  SpokeStatus,
+  ProvisioningPhase,
+  PlanTier,
+  ProductPackRef,
+  ProductPlan,
+  ProductManifest,
+  HeartbeatRequest,
+  HeartbeatResponse,
+  ProvisionRequest,
+} from './hub.js';
