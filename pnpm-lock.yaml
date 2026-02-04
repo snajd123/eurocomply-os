@@ -26,6 +26,9 @@ importers:
       '@eurocomply/types':
         specifier: workspace:*
         version: link:../../packages/types
+      hono:
+        specifier: ^4.11.7
+        version: 4.11.7
     devDependencies:
       tsx:
         specifier: ^4.0.0

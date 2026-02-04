@@ -11,9 +11,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@eurocomply/registry-sdk": "workspace:*",
     "@eurocomply/network-protocol": "workspace:*",
-    "@eurocomply/types": "workspace:*"
+    "@eurocomply/registry-sdk": "workspace:*",
+    "@eurocomply/types": "workspace:*",
+    "hono": "^4.11.7"
   },
   "devDependencies": {
     "tsx": "^4.0.0",
