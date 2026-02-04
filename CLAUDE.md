@@ -176,6 +176,11 @@ When using subagent-driven-development to execute implementation plans:
 - Do not move to the next task while either review has open issues
 - Speed is not a valid reason to skip quality gates
 
+## Known Limitations (Phase 1)
+
+- **Semver pre-release tags:** `HandlerRegistry.compareVersions` does simple numeric split — `1.0.0` vs `1.1.0` works, but `-alpha.1` tags are not supported. Acceptable until Compliance Lock needs pre-release pinning.
+- **Dot-escaped field paths:** `getNestedValue` splits strictly on `.` — data keys containing dots (URLs, chemical names) will mis-resolve. Consider bracket notation or escaping when Platform Services exposes user-defined keys.
+
 ## Key Invariants
 
 1. Kernel VM handlers are pure functions — zero I/O, deterministic, synchronous
