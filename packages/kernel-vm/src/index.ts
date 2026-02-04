@@ -7,3 +7,4 @@ export { resolveValue, getNestedValue, isFieldReference, isDataReference } from 
 export { makeSuccess, makeFailure, makeTrace } from './result.js';
 export { Simulator } from './simulator.js';
 export type { TestCase, ValidationSuite, TestCaseResult, SimulatorReport } from './simulator.js';
+export { portfolioDiff, type PortfolioDiffInput, type PortfolioDiffResult, type StatusChange, type EntityRecord } from './portfolio-diff.js';
