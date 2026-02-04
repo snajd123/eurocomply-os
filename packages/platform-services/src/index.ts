@@ -13,6 +13,7 @@ export { RelationService } from './services/relation.js';
 export { FileService, type StorageBackend } from './services/file.js';
 export { JobService } from './services/job.js';
 export { LLMGateway, createAIBridge, type LLMProvider, type AIBridge } from './services/llm-gateway.js';
+export { PackService, type InstalledPack } from './services/pack.js';
 
 // Execution Loop
 export { ExecutionLoop } from './execution-loop.js';
