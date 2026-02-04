@@ -51,3 +51,6 @@ export type {
   FilterExpression,
   PlatformService,
 } from './platform-service.js';
+
+export { PackManifestSchema } from './pack-manifest.js';
+export type { PackManifest } from './pack-manifest.js';
