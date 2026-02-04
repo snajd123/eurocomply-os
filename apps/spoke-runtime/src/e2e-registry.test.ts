@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { boot, type SpokeInstance } from './boot.js';
 import { loadSeedData } from './seed.js';
 import { createRegistryAPI, RegistryStore } from '@eurocomply/hub-control-plane';
+import { createInstallPlan, type LoadedPack } from '@eurocomply/registry-sdk';
+import { createDefaultRegistry } from '@eurocomply/kernel-vm';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -14,11 +16,30 @@ describe('E2E: Phase 4 — Pack Lifecycle', () => {
   let spoke: SpokeInstance;
   let hubApp: ReturnType<typeof createRegistryAPI>;
   let hubStore: RegistryStore;
+  let generatedLockId: string;
 
   const ctx = {
     tenant_id: 'phase4-e2e',
     principal: { type: 'user' as const, id: 'test-user' },
     correlation_id: 'e2e-phase4',
+  };
+
+  const ruleAST: ASTNode = {
+    handler: 'core:threshold_check',
+    config: { value: { field: 'lead_ppm' }, operator: 'lt', threshold: 10 },
+    label: 'Lead < 10 ppm',
+  };
+
+  const validationSuite = {
+    vertical_id: 'cosmetics',
+    test_cases: [
+      {
+        id: 'below-limit',
+        description: 'Lead below 10 ppm passes',
+        entity_data: { name: 'Safe Product', lead_ppm: 0.5 },
+        expected_status: 'compliant',
+      },
+    ],
   };
 
   beforeAll(async () => {
@@ -49,7 +70,7 @@ describe('E2E: Phase 4 — Pack Lifecycle', () => {
     await container.stop();
   });
 
-  it('should publish a pack to the Hub Registry', async () => {
+  it('should publish a pack with content to the Hub Registry', async () => {
     const res = await hubApp.request('/packs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -60,6 +81,10 @@ describe('E2E: Phase 4 — Pack Lifecycle', () => {
           type: 'logic',
           scope: { verticals: ['cosmetics'], markets: ['EU'] },
         },
+        content: {
+          ruleAST,
+          validationSuite,
+        },
       }),
     });
     expect(res.status).toBe(201);
@@ -68,16 +93,48 @@ describe('E2E: Phase 4 — Pack Lifecycle', () => {
     expect(body.name).toBe('@eu/clp-basic');
   });
 
-  it('should install a pack on the spoke', async () => {
-    const result = await spoke.packService.install(ctx, {
-      name: '@eu/clp-basic',
-      version: '1.0.0',
-      type: 'logic',
-      scope: { verticals: ['cosmetics'], markets: ['EU'] },
+  it('should fetch pack from Hub and install via createInstallPlan', async () => {
+    // Fetch the published pack from Hub
+    const fetchRes = await hubApp.request('/packs/@eu/clp-basic/1.0.0');
+    expect(fetchRes.status).toBe(200);
+    const hubPack = (await fetchRes.json()) as any;
+    expect(hubPack.manifest.name).toBe('@eu/clp-basic');
+    expect(hubPack.content.ruleAST).toBeDefined();
+
+    // Construct LoadedPack from Hub response
+    const loadedPack: LoadedPack = {
+      manifest: hubPack.manifest,
+      ruleAST: hubPack.content.ruleAST,
+      validationSuite: hubPack.content.validationSuite,
+      directory: '',
+    };
+
+    // Create install plan with real dependency resolution and simulator validation
+    const registry = createDefaultRegistry();
+    const plan = await createInstallPlan(loadedPack, {
+      availablePacks: { '@eu/clp-basic': loadedPack },
+      registry,
+      handlerVmVersion: '1.0.0',
+      tenantId: ctx.tenant_id,
     });
-    expect(result.success).toBe(true);
-    expect(result.data.pack_name).toBe('@eu/clp-basic');
-    expect(result.data.status).toBe('active');
+
+    expect(plan.valid).toBe(true);
+    expect(plan.errors).toHaveLength(0);
+    expect(plan.packsToInstall).toHaveLength(1);
+    expect(plan.simulationResults[0].allPassed).toBe(true);
+    expect(plan.lock.root_pack.name).toBe('@eu/clp-basic');
+    expect(plan.lock.packs['@eu/clp-basic@1.0.0']).toBeDefined();
+
+    // Install packs from the plan
+    for (const p of plan.packsToInstall) {
+      const installResult = await spoke.packService.install(ctx, p.manifest);
+      expect(installResult.success).toBe(true);
+    }
+
+    // Save the generated ComplianceLock
+    const lockResult = await spoke.packService.saveLock(ctx, plan.lock);
+    expect(lockResult.success).toBe(true);
+    generatedLockId = plan.lock.lock_id;
   });
 
   it('should list installed packs', async () => {
@@ -87,51 +144,32 @@ describe('E2E: Phase 4 — Pack Lifecycle', () => {
     expect(result.data.items[0].pack_name).toBe('@eu/clp-basic');
   });
 
-  it('should evaluate a product and save a compliance lock', async () => {
+  it('should evaluate a product using the generated lock', async () => {
     // Create product
     const product = await spoke.entityService.create(ctx, {
       entity_type: 'cosmetic_product',
       data: { name: 'Phase 4 Test Product', lead_ppm: 0.5 },
     });
 
-    const rule: ASTNode = {
-      handler: 'core:threshold_check',
-      config: { value: { field: 'lead_ppm' }, operator: 'lt', threshold: 10 },
-      label: 'Lead < 10 ppm',
-    };
-
-    // Evaluate
+    // Evaluate using the lock generated by createInstallPlan
     const evalResult = await spoke.executionLoop.evaluate(ctx, {
       entity_type: 'cosmetic_product',
       entity_id: product.data.entity_id,
-      rule,
-      compliance_lock_id: 'clp-basic-v1-lock',
+      rule: ruleAST,
+      compliance_lock_id: generatedLockId,
       vertical_id: 'cosmetics',
       market: 'EU',
     });
     expect(evalResult.success).toBe(true);
     expect(evalResult.data.handler_result.value).toHaveProperty('pass', true);
 
-    // Save lock
-    const lock = {
-      lock_id: 'clp-basic-v1-lock',
-      tenant_id: ctx.tenant_id,
-      timestamp: new Date().toISOString(),
-      handler_vm_exact: '1.0.0',
-      root_pack: { name: '@eu/clp-basic', version: '1.0.0', cid: 'test-cid' },
-      packs: {
-        '@eu/clp-basic@1.0.0': { version: '1.0.0', cid: 'test-cid' },
-      },
-      status: 'active' as const,
-    };
-    const lockResult = await spoke.packService.saveLock(ctx, lock);
-    expect(lockResult.success).toBe(true);
-
-    // Retrieve lock
-    const getLockResult = await spoke.packService.getLock(ctx, 'clp-basic-v1-lock');
+    // Retrieve the lock and verify it has real CIDs (not hand-crafted)
+    const getLockResult = await spoke.packService.getLock(ctx, generatedLockId);
     expect(getLockResult.success).toBe(true);
     expect(getLockResult.data.root_pack.name).toBe('@eu/clp-basic');
+    expect(getLockResult.data.root_pack.cid).toMatch(/^[a-f0-9]{64}$/); // Real SHA-256 hash
     expect(getLockResult.data.packs['@eu/clp-basic@1.0.0'].version).toBe('1.0.0');
+    expect(getLockResult.data.packs['@eu/clp-basic@1.0.0'].cid).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it('should serve registry tools via MCP', async () => {

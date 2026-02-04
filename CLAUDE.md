@@ -175,6 +175,10 @@ When using subagent-driven-development to execute implementation plans:
 - Run spec compliance review BEFORE code quality review (wrong order = wasted effort)
 - Do not move to the next task while either review has open issues
 - Speed is not a valid reason to skip quality gates
+- NEVER parallelize implementer subagents — execute tasks sequentially so each task can verify integration with previous tasks. Parallel implementation causes disconnected code that compiles but doesn't actually work together.
+- Spec reviews must check end-to-end connectivity, not just plan-text matching. Ask: "Is this code actually called from the runtime? Does the data flow between components?" A library function that passes unit tests but is never wired into the boot sequence or execution path is incomplete.
+- NEVER use haiku for reviews — use sonnet or opus. Cheap reviews produce cheap results.
+- When a task produces a reusable function (e.g., `createInstallPlan`), the task that uses it (e.g., spoke boot) MUST actually call it. If the plan doesn't connect them, flag the gap before implementing — don't silently produce disconnected code.
 
 ## Known Limitations (Phase 1)
 

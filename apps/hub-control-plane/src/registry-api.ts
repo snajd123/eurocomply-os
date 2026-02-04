@@ -58,7 +58,7 @@ export function createRegistryAPI(store: RegistryStore) {
       : rawName;
     const pack = store.get(name, version);
     if (!pack) return c.json({ error: 'Pack not found' }, 404);
-    return c.json({ manifest: pack.manifest, cid: pack.cid, publishedAt: pack.publishedAt });
+    return c.json({ manifest: pack.manifest, content: pack.content, cid: pack.cid, publishedAt: pack.publishedAt });
   });
 
   app.get('/health', (c) => c.json({ status: 'ok' }));

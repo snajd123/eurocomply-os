@@ -14,7 +14,7 @@ import {
   type StorageBackend,
 } from '@eurocomply/platform-services';
 import { createDefaultRegistry } from '@eurocomply/kernel-vm';
-import { loadPack } from '@eurocomply/registry-sdk';
+import { loadPack, createInstallPlan, type LoadedPack } from '@eurocomply/registry-sdk';
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import type { SpokeConfig } from './config.js';
@@ -86,12 +86,44 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
       correlation_id: 'boot-pack-install',
     };
 
+    // Load all packs first
+    const loadedPacks: LoadedPack[] = [];
     for (const dir of packDirs) {
       try {
-        const pack = await loadPack(dir);
-        await packService.install(ctx, pack.manifest);
+        loadedPacks.push(await loadPack(dir));
       } catch (err) {
         console.error(`Failed to load pack from ${dir}:`, err);
+      }
+    }
+
+    // Build available packs map for dependency resolution
+    const availablePacks: Record<string, LoadedPack> = {};
+    for (const pack of loadedPacks) {
+      availablePacks[pack.manifest.name] = pack;
+    }
+
+    // Create install plan and install each pack
+    for (const pack of loadedPacks) {
+      try {
+        const plan = await createInstallPlan(pack, {
+          availablePacks,
+          registry,
+          handlerVmVersion: '1.0.0',
+          tenantId: config.tenantId,
+        });
+
+        if (!plan.valid) {
+          console.error(`Install plan invalid for ${pack.manifest.name}: ${plan.errors.join(', ')}`);
+          continue;
+        }
+
+        for (const p of plan.packsToInstall) {
+          await packService.install(ctx, p.manifest);
+        }
+
+        await packService.saveLock(ctx, plan.lock);
+      } catch (err) {
+        console.error(`Failed to install pack ${pack.manifest.name}:`, err);
       }
     }
   }
