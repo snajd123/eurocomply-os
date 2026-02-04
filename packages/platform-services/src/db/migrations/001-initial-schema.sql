@@ -1,21 +1,23 @@
 -- Entity type definitions
 CREATE TABLE entity_types (
-  entity_type TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
   schema JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (tenant_id, entity_type)
 );
 
 -- Entity instances
 CREATE TABLE entities (
   entity_id TEXT PRIMARY KEY,
-  entity_type TEXT NOT NULL REFERENCES entity_types(entity_type),
+  entity_type TEXT NOT NULL,
   tenant_id TEXT NOT NULL,
   data JSONB NOT NULL DEFAULT '{}',
   version INT NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  FOREIGN KEY (tenant_id, entity_type) REFERENCES entity_types(tenant_id, entity_type)
 );
 
 CREATE INDEX idx_entities_type ON entities(entity_type);
@@ -89,17 +91,20 @@ CREATE INDEX idx_jobs_tenant ON jobs(tenant_id);
 
 -- Relation type definitions (cardinality, constraints)
 CREATE TABLE relation_types (
-  relation_type TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,
-  from_entity_type TEXT NOT NULL REFERENCES entity_types(entity_type),
-  to_entity_type TEXT NOT NULL REFERENCES entity_types(entity_type),
+  relation_type TEXT NOT NULL,
+  from_entity_type TEXT NOT NULL,
+  to_entity_type TEXT NOT NULL,
   cardinality TEXT NOT NULL DEFAULT 'n:n'
     CHECK (cardinality IN ('1:1', '1:n', 'n:1', 'n:n')),
   constraints JSONB NOT NULL DEFAULT '{}',
   inverse_type TEXT,
   cascade_delete BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (tenant_id, relation_type),
+  FOREIGN KEY (tenant_id, from_entity_type) REFERENCES entity_types(tenant_id, entity_type),
+  FOREIGN KEY (tenant_id, to_entity_type) REFERENCES entity_types(tenant_id, entity_type)
 );
 
 CREATE INDEX idx_relation_types_tenant ON relation_types(tenant_id);
