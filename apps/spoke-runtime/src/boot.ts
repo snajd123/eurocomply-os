@@ -91,12 +91,23 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
 
     // Load all packs first
     const loadedPacks: LoadedPack[] = [];
+    const loadErrors: Array<{ dir: string; error: unknown }> = [];
+
     for (const dir of packDirs) {
       try {
         loadedPacks.push(await loadPack(dir));
       } catch (err) {
+        loadErrors.push({ dir, error: err });
         console.error(`Failed to load pack from ${dir}:`, err);
       }
+    }
+
+    // Fail fast if required packs failed to load
+    if (config.requirePacks && loadErrors.length > 0) {
+      await db.close();
+      if (neo4j) await neo4j.close();
+      const dirs = loadErrors.map(e => e.dir).join(', ');
+      throw new Error(`Boot aborted: failed to load required packs from: ${dirs}`);
     }
 
     // Build available packs map for dependency resolution
@@ -116,7 +127,13 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
         });
 
         if (!plan.valid) {
-          console.error(`Install plan invalid for ${pack.manifest.name}: ${plan.errors.join(', ')}`);
+          const msg = `Install plan invalid for ${pack.manifest.name}: ${plan.errors.join(', ')}`;
+          if (config.requirePacks) {
+            await db.close();
+            if (neo4j) await neo4j.close();
+            throw new Error(`Boot aborted: ${msg}`);
+          }
+          console.error(msg);
           continue;
         }
 
@@ -126,6 +143,11 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
 
         await packService.saveLock(ctx, plan.lock);
       } catch (err) {
+        if (config.requirePacks) {
+          await db.close();
+          if (neo4j) await neo4j.close();
+          throw err instanceof Error ? err : new Error(`Boot aborted: failed to install pack ${pack.manifest.name}`);
+        }
         console.error(`Failed to install pack ${pack.manifest.name}:`, err);
       }
     }

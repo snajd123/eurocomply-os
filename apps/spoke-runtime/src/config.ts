@@ -14,6 +14,7 @@ export interface SpokeConfig {
   };
   tenantId: string;
   packsDir?: string;
+  requirePacks?: boolean; // If true, boot aborts when any pack fails to load. Default: false.
   seedFile?: string;
   hubUrl?: string;     // Hub URL for agent heartbeats
   apiKey?: string;     // API key for Hub authentication
@@ -37,6 +38,7 @@ export function loadConfig(): SpokeConfig {
     } : undefined,
     tenantId: process.env.TENANT_ID ?? 'default',
     packsDir: process.env.PACKS_DIR,
+    requirePacks: process.env.REQUIRE_PACKS === 'true',
     seedFile: process.env.SEED_FILE,
     hubUrl: process.env.HUB_URL,
     apiKey: process.env.API_KEY,
