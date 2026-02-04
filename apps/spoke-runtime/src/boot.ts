@@ -8,11 +8,15 @@ import {
   JobService,
   FileService,
   ExecutionLoop,
+  PackService,
   createMCPToolRouter,
   createMCPServer,
   type StorageBackend,
 } from '@eurocomply/platform-services';
 import { createDefaultRegistry } from '@eurocomply/kernel-vm';
+import { loadPack } from '@eurocomply/registry-sdk';
+import { readdirSync, statSync } from 'fs';
+import { join } from 'path';
 import type { SpokeConfig } from './config.js';
 
 class MemoryStorageBackend implements StorageBackend {
@@ -29,6 +33,7 @@ export interface SpokeInstance {
   entityService: EntityService;
   audit: AuditLogger;
   executionLoop: ExecutionLoop;
+  packService: PackService;
   relationService?: RelationService;
   close(): Promise<void>;
 }
@@ -51,6 +56,7 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
   const fileService = new FileService(db, audit, new MemoryStorageBackend());
   const registry = createDefaultRegistry();
   const executionLoop = new ExecutionLoop(db, entityService, audit, registry);
+  const packService = new PackService(db, audit);
 
   let relationService: RelationService | undefined;
   if (neo4j) {
@@ -64,8 +70,31 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
     jobService,
     fileService,
     executionLoop,
+    packService,
   });
   const app = createMCPServer(router);
+
+  // Load packs from directory if configured
+  if (config.packsDir) {
+    const packDirs = readdirSync(config.packsDir)
+      .map(name => join(config.packsDir!, name))
+      .filter(path => statSync(path).isDirectory());
+
+    const ctx = {
+      tenant_id: config.tenantId,
+      principal: { type: 'system' as const, id: 'boot' },
+      correlation_id: 'boot-pack-install',
+    };
+
+    for (const dir of packDirs) {
+      try {
+        const pack = await loadPack(dir);
+        await packService.install(ctx, pack.manifest);
+      } catch (err) {
+        console.error(`Failed to load pack from ${dir}:`, err);
+      }
+    }
+  }
 
   return {
     app,
@@ -74,6 +103,7 @@ export async function boot(config: SpokeConfig): Promise<SpokeInstance> {
     entityService,
     audit,
     executionLoop,
+    packService,
     relationService,
     async close() {
       if (neo4j) await neo4j.close();

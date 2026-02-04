@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { boot, type SpokeInstance } from './boot.js';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { mkdirSync, writeFileSync, rmSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('Spoke Boot', () => {
   let container: StartedPostgreSqlContainer;
@@ -44,5 +47,40 @@ describe('Spoke Boot', () => {
     expect(res.status).toBe(200);
     const tools = await res.json();
     expect(tools.length).toBeGreaterThan(0);
+  });
+
+  it('should install packs from directory on boot', async () => {
+    const packsDir = join(tmpdir(), `boot-packs-${Date.now()}`);
+    mkdirSync(join(packsDir, 'test-pack'), { recursive: true });
+    writeFileSync(join(packsDir, 'test-pack', 'pack.json'), JSON.stringify({
+      name: '@test/boot-pack',
+      version: '1.0.0',
+      type: 'logic',
+    }));
+
+    const spokeWithPacks = await boot({
+      port: 0,
+      postgres: {
+        host: container.getHost(),
+        port: container.getMappedPort(5432),
+        database: container.getDatabase(),
+        user: container.getUsername(),
+        password: container.getPassword(),
+      },
+      tenantId: 'test-tenant-packs',
+      packsDir,
+    });
+
+    const packs = await spokeWithPacks.packService.list({
+      tenant_id: 'test-tenant-packs',
+      principal: { type: 'system', id: 'test' },
+      correlation_id: 'test',
+    });
+
+    expect(packs.data.total).toBe(1);
+    expect(packs.data.items[0].pack_name).toBe('@test/boot-pack');
+
+    await spokeWithPacks.close();
+    rmSync(packsDir, { recursive: true, force: true });
   });
 });
