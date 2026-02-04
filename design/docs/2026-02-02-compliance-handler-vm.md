@@ -81,7 +81,7 @@ The Kernel VM is to EuroComply what CPU instructions are to a computer.
 ```typescript
 // Every handler implements this interface
 interface Handler<TConfig, TInput, TOutput> {
-  readonly id: string;           // e.g., "core:bom_sum"
+  readonly id: string;           // e.g., "core:collection_sum"
   readonly version: string;      // e.g., "1.0.0"
   readonly category: HandlerCategory;
 
@@ -164,14 +164,14 @@ interface Reference {
 
 ## 3. Computation Handlers
 
-These handlers calculate values from product data, BOMs, and materials.
+These handlers calculate values from collections of items (e.g., materials, components, line items).
 
-### 3.1 `core:bom_sum`
+### 3.1 `core:collection_sum`
 
-Sum a field across all items in a Bill of Materials.
+Sum a field across all items in a collection.
 
 ```typescript
-interface BomSumConfig {
+interface CollectionSumConfig {
   source: {
     entity: 'materials' | 'components' | 'substances';
     path?: string;                 // Nested path: 'materials.substances'
@@ -185,7 +185,7 @@ interface BomSumConfig {
   normalize_to?: string;           // Target unit for normalization
 }
 
-interface BomSumOutput {
+interface CollectionSumOutput {
   total: number;
   unit: string;
   item_count: number;
@@ -198,27 +198,27 @@ interface BomSumOutput {
 - Sum of weights for shipping calculation
 - Total recycled content percentage
 
-### 3.2 `core:bom_max`
+### 3.2 `core:collection_max`
 
-Find maximum value in BOM - identify worst-case component.
+Find maximum value in a collection - identify worst-case item.
 
 ```typescript
-interface BomMaxConfig {
+interface CollectionMaxConfig {
   source: { entity: string; path?: string };
   field: string;
   filter?: { field: string; operator: string; value: unknown };
 }
 
-interface BomMaxOutput {
+interface CollectionMaxOutput {
   max_value: number;
   max_item: { id: string; name: string; value: number };
   all_values: Array<{ id: string; name: string; value: number }>;
 }
 ```
 
-### 3.3 `core:bom_min`
+### 3.3 `core:collection_min`
 
-Find minimum value in BOM - find lowest purity, earliest expiration.
+Find minimum value in a collection - find lowest purity, earliest expiration.
 
 ### 3.4 `core:bom_weighted`
 
@@ -821,12 +821,12 @@ interface FindSubstituteConfig {
 }
 ```
 
-### 7.3 `core:regulatory_conflict_resolve`
+### 7.3 `core:rule_resolve`
 
-Harmonize requirements across multiple jurisdictions.
+Resolve conflicts between competing rules.
 
 ```typescript
-interface RegulatoryConflictResolveConfig {
+interface RuleResolveConfig {
   substance_or_product: { type: string; id: string };
   target_markets: string[];
   analyze: {
@@ -1012,12 +1012,12 @@ interface DocumentExtractConfig {
 }
 ```
 
-### 9.2 `ai:compliance_interpret`
+### 9.2 `ai:interpret`
 
-Interpret regulatory text and apply to specific product/substance.
+Interpret structured or unstructured text and apply to a specific context.
 
 ```typescript
-interface ComplianceInterpretConfig {
+interface InterpretConfig {
   regulation: { text: string | { regulation_id: string }; jurisdiction: string };
   context: { product?: object; substance?: object; use_case?: string };
   questions: Array<{
@@ -1090,9 +1090,9 @@ interface ExplainConfig {
 }
 ```
 
-### 9.9 `ai:risk_score`
+### 9.9 `ai:score`
 
-Score overall compliance risk for an entity by weighing multiple factors.
+Score an entity by weighing multiple factors.
 
 ```typescript
 interface RiskScoreConfig {
@@ -1218,7 +1218,7 @@ Here's the complete flow of an AI agent creating a new industry vertical:
 
 ```typescript
 // AI uses intelligence tools to understand EU Biocidal Products Regulation
-const interpretation = await mcp.call('ai:compliance_interpret', {
+const interpretation = await mcp.call('ai:interpret', {
   regulation: { id: 'EU_BPR_528_2012' },
   questions: [
     { id: 'product_types', question: 'What are the 22 biocidal product types?', answer_type: 'category' },
@@ -1632,7 +1632,7 @@ AI: ai:document_generate → creates verified supplier compliance report
 ```
 User declares new market entry
      ↓
-AI: ai:compliance_interpret → reads MDR regulation
+AI: ai:interpret → reads MDR regulation
      ↓
 AI: meta:create_vertical → defines medical_devices vertical
      ↓
@@ -2507,7 +2507,7 @@ const mcpTools = {
 
   // AI - intelligence tools (delegated to Platform Services LLM Gateway)
   'ai:gap_analysis': { /* identify compliance gaps */ },
-  'ai:compliance_interpret': { /* interpret regulatory text */ },
+  'ai:interpret': { /* interpret text */ },
   'ai:explain': { /* explain decisions in plain language */ },
   'ai:document_extract': { /* extract structured data from documents */ },
 
@@ -2630,7 +2630,7 @@ interface ValidationDataset {
 
 ### Phase 2: Computation Handlers (Week 1)
 
-1. `core:bom_sum`, `core:bom_max`, `core:bom_min`
+1. `core:collection_sum`, `core:collection_max`, `core:collection_min`
 2. `core:bom_weighted` (critical)
 3. `core:count`, `core:rollup`, `core:average`, `core:ratio`
 4. `core:unit_convert`
@@ -2658,7 +2658,7 @@ interface ValidationDataset {
 ### Phase 6: Resolution Handlers (Week 3)
 
 1. `core:data_conflict_resolve`, `core:entity_match`
-2. `core:find_substitute`, `core:regulatory_conflict_resolve`
+2. `core:find_substitute`, `core:rule_resolve`
 3. `core:priority_rank`, `core:version_select`
 4. `core:threshold_interpolate`, `core:action_sequence`
 
@@ -2666,7 +2666,7 @@ interface ValidationDataset {
 
 1. LLM integration infrastructure
 2. `ai:document_extract`, `ai:classify`
-3. `ai:compliance_interpret`, `ai:gap_analysis`
+3. `ai:interpret`, `ai:gap_analysis`
 4. `ai:natural_query`, `ai:document_generate`
 5. `ai:anomaly_detect`, `ai:explain`
 
@@ -2701,9 +2701,9 @@ interface ValidationDataset {
 
 | ID | Category | Purpose |
 |----|----------|---------|
-| `core:bom_sum` | Computation | Sum field across BOM |
-| `core:bom_max` | Computation | Find maximum value |
-| `core:bom_min` | Computation | Find minimum value |
+| `core:collection_sum` | Computation | Sum field across collection |
+| `core:collection_max` | Computation | Find maximum value |
+| `core:collection_min` | Computation | Find minimum value |
 | `core:bom_weighted` | Computation | Cascading weighted calculation |
 | `core:count` | Computation | Count items matching criteria |
 | `core:rollup` | Computation | Aggregate children to parent |
@@ -2737,7 +2737,7 @@ interface ValidationDataset {
 | `core:cycle_detect` | Graph | Find circular refs |
 | `core:data_conflict_resolve` | Resolution | Choose between conflicts |
 | `core:find_substitute` | Resolution | Find replacements |
-| `core:regulatory_conflict_resolve` | Resolution | Harmonize requirements |
+| `core:rule_resolve` | Resolution | Resolve rule conflicts |
 | `core:priority_rank` | Resolution | Rank by criteria |
 | `core:entity_match` | Resolution | Match/deduplicate |
 | `core:version_select` | Resolution | Select version |
@@ -2746,13 +2746,13 @@ interface ValidationDataset {
 | `core:deadline` | Temporal | Enforce time-window conditions |
 | `core:schedule` | Temporal | Recurring evaluation triggers |
 | `ai:document_extract` | AI | Extract from documents |
-| `ai:compliance_interpret` | AI | Interpret regulations |
+| `ai:interpret` | AI | Interpret text |
 | `ai:gap_analysis` | AI | Identify gaps |
 | `ai:query` | AI | Answer questions |
 | `ai:document_generate` | AI | Generate documents |
 | `ai:classify` | AI | Classify categories |
 | `ai:anomaly_detect` | AI | Find patterns |
-| `ai:risk_score` | AI | Score compliance risk |
+| `ai:score` | AI | Score entity by weighted factors |
 | `ai:explain` | AI | Generate explanations |
 
 ---
@@ -2856,7 +2856,7 @@ const server = new McpServer({
 // Register kernel-vm handlers as MCP tools (namespaced by category)
 for (const handler of handlerRegistry.getAll()) {
   server.tool({
-    name: handler.id,  // e.g., 'core:bom_sum', 'core:threshold_check'
+    name: handler.id,  // e.g., 'core:collection_sum', 'core:threshold_check'
     description: handler.description,
     inputSchema: handler.configSchema,
 
@@ -2898,7 +2898,7 @@ AI agents discover available tools via MCP's standard discovery protocol:
 const tools = await mcpClient.listTools();
 // Returns:
 // [
-//   { name: 'core:bom_sum', description: 'Sum field across BOM', inputSchema: {...} },
+//   { name: 'core:collection_sum', description: 'Sum field across collection', inputSchema: {...} },
 //   { name: 'core:threshold_check', description: 'Compare value against limit', inputSchema: {...} },
 //   { name: 'entity:create', description: 'Create entity', inputSchema: {...} },
 //   { name: 'meta:create_vertical', description: 'Create new industry vertical', inputSchema: {...} },

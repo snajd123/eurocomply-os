@@ -306,7 +306,7 @@ Creates a new entity type with schema, behaviors, and compliance bindings.
 
         // Computed fields (evaluated by Kernel VM)
         computed?: {
-          handler: string,                  // handler ID, e.g., "core:bom_sum"
+          handler: string,                  // handler ID, e.g., "core:collection_sum"
           config: unknown,                  // handler config
           recompute_on?: string[]           // field changes that trigger recompute
         },
@@ -1650,13 +1650,13 @@ The `ai:` namespace is shared between two layers. **Kernel VM contracts** define
 | Tool | Purpose |
 |------|---------|
 | `ai:document_extract` | Extract structured data from unstructured documents (SDS, CoA, test reports) |
-| `ai:compliance_interpret` | Interpret regulatory text and apply to specific product/substance |
+| `ai:interpret` | Interpret structured or unstructured text and apply to a specific context |
 | `ai:gap_analysis` | Identify what's missing for compliance |
 | `ai:query` | Natural language question answering about compliance data |
 | `ai:document_generate` | Generate compliance documents from structured data |
 | `ai:classify` | Classify into regulatory categories (GHS hazard, customs HS code) |
 | `ai:anomaly_detect` | Detect unusual patterns indicating data quality or compliance risks |
-| `ai:risk_score` | Score compliance risk for entities |
+| `ai:score` | Score entities by weighted factors |
 | `ai:explain` | Generate human-readable explanations for compliance decisions |
 
 **Platform Services Interactive Tools** (defined and executed here):
@@ -1685,7 +1685,7 @@ The `ai:` namespace is shared between two layers. **Kernel VM contracts** define
 │  │                                                           │  │
 │  │  Used by:                                                 │  │
 │  │  • Kernel VM AI tools (ai:classify, ai:document_extract,│  │
-│  │    ai:anomaly_detect, ai:risk_score, ai:explain)          │  │
+│  │    ai:anomaly_detect, ai:score, ai:explain)          │  │
 │  │  • AI Runtime entity ops (ai:explain_entity,             │  │
 │  │    ai:suggest_actions, ai:query)                          │  │
 │  │                                                           │  │
@@ -1734,7 +1734,7 @@ The `ai:` namespace is shared between two layers. **Kernel VM contracts** define
 | `ai:document_extract` | A (self-hosted) | **Yes** — SDS content, formulations | Fine-tuned 7B-13B |
 | `ai:classify` | A (self-hosted) | **Yes** — substance names, properties | Fine-tuned 7B-13B |
 | `ai:anomaly_detect` | A (self-hosted) | **Yes** — concentrations, certificates | Fine-tuned 7B-13B |
-| `ai:risk_score` | A (self-hosted) | **Yes** — product composition data | Fine-tuned 7B-13B |
+| `ai:score` | A (self-hosted) | **Yes** — entity data for scoring | Fine-tuned 7B-13B |
 | `ai:explain` | A (self-hosted) | **Yes** — evaluation results, entity data | Fine-tuned 7B-13B |
 | `ai:query` | A (self-hosted) | **Yes** — answers questions about tenant data | Fine-tuned 7B-13B |
 | `ai:gap_analysis` | A (self-hosted) | **Yes** — entity state, compliance requirements | Fine-tuned 7B-13B |
@@ -1744,7 +1744,7 @@ The `ai:` namespace is shared between two layers. **Kernel VM contracts** define
 | `ai:document_generate` | A (self-hosted) | **Yes** — product data for document generation | Fine-tuned 7B-13B |
 | `ai:design_entity` | B (cloud permitted) | **No** — schemas and descriptions only | Frontier 70B+ |
 | `ai:design_workflow` | B (cloud permitted) | **No** — workflow logic only | Frontier 70B+ |
-| `ai:compliance_interpret` | B (cloud permitted) | **No** — regulation text and schemas only | Frontier 70B+ |
+| `ai:interpret` | B (cloud permitted) | **No** — text and schemas only | Frontier 70B+ |
 | `ai:execute` | **Mixed** | Plan phase: B (no data). Execute phase: Kernel VM (local) | Both |
 
 ### Infrastructure Cost Estimate
@@ -1792,7 +1792,7 @@ The gateway is a Kernel component. It cannot be bypassed. Even if a Driver Pack 
 | | AI Runtime (Platform Services) | AI Handlers (Kernel VM) |
 |---|---|---|
 | **Purpose** | Agent orchestration, NL interface | Specific intelligence primitives |
-| **Examples** | `ai:query`, `ai:execute`, `ai:conversation` | `ai:classify`, `ai:anomaly_detect`, `ai:risk_score` |
+| **Examples** | `ai:query`, `ai:execute`, `ai:conversation` | `ai:classify`, `ai:anomaly_detect`, `ai:score` |
 | **Stateful?** | Yes (conversation context) | No (pure function) |
 | **In Compliance Lock?** | No | Yes |
 | **Who calls them?** | Users, applications | Logic ASTs, rules |
@@ -1957,7 +1957,7 @@ When an entity is created or updated, Platform Services checks for computed fiel
 ```
 entity:update(product_id, { materials: [...] })
   └── Platform Services detects computed field: "total_lead_concentration"
-      └── Kernel VM evaluates: core:bom_sum({ source: "materials", field: "lead_ppm" })
+      └── Kernel VM evaluates: core:collection_sum({ source: "materials", field: "lead_ppm" })
           └── Result written back to entity
 ```
 

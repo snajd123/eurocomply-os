@@ -322,9 +322,9 @@ The `conflict_resolution` strategy in each manifest dictates behavior when two r
 
 **Most Restrictive** is the default -- in the absence of a manual override, the system defaults to the choice that minimizes liability.
 
-### 4.5 Resolution Handler: `core:regulatory_conflict_resolve`
+### 4.5 Resolution Handler: `core:rule_resolve`
 
-When a collision is detected, the system invokes the existing `core:regulatory_conflict_resolve` handler. The tenant configures their preferred strategy. The audit trace captures which rule won and why -- transparency is what makes it liability-proof.
+When a collision is detected, the system invokes the existing `core:rule_resolve` handler. The tenant configures their preferred resolution strategy. The audit trace captures which rule won and why -- transparency is what makes it liability-proof.
 
 ### 4.6 Why the Cascade Matters
 
@@ -1100,7 +1100,7 @@ By combining all toolsets, an AI agent can build a complete compliance vertical 
 
 ```
 1. INTERPRET
-   ai:compliance_interpret → extracts requirements from regulatory text
+   ai:interpret → extracts requirements from regulatory text
 
 2. SCAFFOLD
    devel:scaffold → creates pack structure with boilerplate
