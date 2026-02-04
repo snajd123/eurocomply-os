@@ -2,10 +2,10 @@ import type { HandlerDefinition } from '../../handler.js';
 import { resolveValue, getNestedValue } from '../../resolve.js';
 import { makeSuccess, makeFailure, now } from '../../result.js';
 
-const ID = 'core:bom_sum';
+const ID = 'core:collection_sum';
 const VERSION = '1.0.0';
 
-export const bomSumHandler: HandlerDefinition = {
+export const collectionSumHandler: HandlerDefinition = {
   id: ID,
   version: VERSION,
   category: 'computation',

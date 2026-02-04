@@ -9,7 +9,7 @@ import { thresholdCheckHandler } from './validation/threshold-check.js';
 import { absenceCheckHandler } from './validation/absence-check.js';
 import { listCheckHandler } from './validation/list-check.js';
 import { completenessCheckHandler } from './validation/completeness-check.js';
-import { bomSumHandler } from './computation/bom-sum.js';
+import { collectionSumHandler } from './computation/collection-sum.js';
 import { unitConvertHandler } from './computation/unit-convert.js';
 import { ratioHandler } from './computation/ratio.js';
 import { deadlineHandler } from './temporal/deadline.js';
@@ -18,6 +18,6 @@ export function createDefaultRegistry(): HandlerRegistry {
   const r = new HandlerRegistry();
   [andHandler, orHandler, notHandler, ifThenHandler, pipeHandler, forEachHandler,
    thresholdCheckHandler, absenceCheckHandler, listCheckHandler, completenessCheckHandler,
-   bomSumHandler, unitConvertHandler, ratioHandler, deadlineHandler].forEach(h => r.register(h));
+   collectionSumHandler, unitConvertHandler, ratioHandler, deadlineHandler].forEach(h => r.register(h));
   return r;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bomSumHandler } from './bom-sum.js';
+import { collectionSumHandler } from './collection-sum.js';
 import { unitConvertHandler } from './unit-convert.js';
 import { ratioHandler } from './ratio.js';
 import type { ExecutionContext } from '@eurocomply/types';
@@ -20,14 +20,14 @@ const ctx: ExecutionContext = {
   vertical_id: 'cosmetics', market: 'EU', timestamp: '2026-01-01T00:00:00Z',
 };
 
-describe('core:bom_sum', () => {
+describe('core:collection_sum', () => {
   it('sums a field across all items', () => {
-    const r = bomSumHandler.execute({ source: { field: 'materials' }, field: 'lead_ppm' }, null, ctx, noopEvaluate);
+    const r = collectionSumHandler.execute({ source: { field: 'materials' }, field: 'lead_ppm' }, null, ctx, noopEvaluate);
     expect(r.success).toBe(true);
     expect((r.value as any).sum).toBe(35);
   });
   it('applies filter', () => {
-    const r = bomSumHandler.execute({ source: { field: 'materials' }, field: 'lead_ppm', filter: { field: 'type', equals: 'active' } }, null, ctx, noopEvaluate);
+    const r = collectionSumHandler.execute({ source: { field: 'materials' }, field: 'lead_ppm', filter: { field: 'type', equals: 'active' } }, null, ctx, noopEvaluate);
     expect((r.value as any).sum).toBe(15);
   });
 });
