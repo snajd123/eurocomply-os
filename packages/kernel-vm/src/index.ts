@@ -1,5 +1,5 @@
 export { HandlerRegistry } from './registry.js';
-export { evaluate } from './evaluator.js';
+export { evaluate, type EvaluateOptions } from './evaluator.js';
 export { validateAST } from './validator.js';
 export { createDefaultRegistry } from './handlers/index.js';
 export type { HandlerDefinition, EvaluateFn } from './handler.js';

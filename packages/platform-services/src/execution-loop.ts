@@ -5,7 +5,7 @@ import type { AIBridge } from './services/llm-gateway.js';
 import type { PostgresConnectionManager } from './db/postgres.js';
 import type { PlatformServiceContext } from './context.js';
 import type { HandlerRegistry } from '@eurocomply/kernel-vm';
-import { evaluate, isDataReference } from '@eurocomply/kernel-vm';
+import { evaluate, isDataReference, type EvaluateOptions } from '@eurocomply/kernel-vm';
 import type {
   ServiceResult, ASTNode, HandlerResult, ExecutionContext,
 } from '@eurocomply/types';
@@ -72,6 +72,7 @@ export class ExecutionLoop {
     private registry: HandlerRegistry,
     private relationService?: RelationService,
     private aiBridge?: AIBridge,
+    private evaluationTimeoutMs: number = 5000,
   ) {}
 
   async evaluate(
@@ -155,7 +156,9 @@ export class ExecutionLoop {
       };
 
       // Phase 2: Kernel VM evaluates (pure, synchronous)
-      const handlerResult = evaluate(input.rule, executionContext, this.registry);
+      const handlerResult = evaluate(input.rule, executionContext, this.registry, {
+        timeout_ms: this.evaluationTimeoutMs,
+      });
 
       // Normalize the handler result: success means "executed without error",
       // the compliance outcome is in value.pass. The kernel-vm uses makeFailure
